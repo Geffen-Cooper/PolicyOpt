@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from enum import Enum
 import torch
-from energy_harvest import EnergyHarvester
+from datasets.energy_harvest import EnergyHarvester
 
 class DeviceState(Enum):
 	OFF = 0 # init or device energy went to 0

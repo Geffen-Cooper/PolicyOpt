@@ -29,7 +29,7 @@ if __name__ == '__main__':
 	writer = SummaryWriter(os.path.join(PROJECT_ROOT,"saved_data/runs","policy")+"_"+str(time.time()))
 
 	# load data
-	root_dir = os.path.join(PROJECT_ROOT,"../data/dsads/merged_preprocess")
+	root_dir = os.path.join(PROJECT_ROOT,"datasets/dsads_contig/merged_preprocess")
 	train_data = np.load(f"{root_dir}/training_data.npy")
 	train_labels = np.load(f"{root_dir}/training_labels.npy")
 
@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
 	# load pretrained classifier
 	model = SimpleNet(3,10)
-	ckpt_path = os.path.join(PROJECT_ROOT,f"saved_data/checkpoints/dsads_contig/seed{123}.pth")
+	ckpt_path = os.path.join(PROJECT_ROOT,f"saved_data/checkpoints/seed{123}.pth")
 	model.load_state_dict(torch.load(ckpt_path)['model_state_dict'])
 
 	# hyperparameters

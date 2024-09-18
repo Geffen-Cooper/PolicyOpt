@@ -124,7 +124,7 @@ class EnergyHarvester():
         returns:
             energy: numpy array of energy values in Joules, same length as time and power
         """
-        return scipy.integrate.cumtrapz(power, time, initial=0)*self.efficiency
+        return scipy.integrate.cumulative_trapezoid(power, time, initial=0)*self.efficiency
     
     def generate_valid_mask(self, energy : np.ndarray, accel_samples : int) -> np.ndarray:
         """
