@@ -12,7 +12,7 @@ class DeviceState(Enum):
 
 
 def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, init_overhead: float, \
-				  eh: EnergyHarvester, policy='opportunistic', learned_policy=None, train_mode=True, past_actions=[]):
+				  eh: EnergyHarvester, policy='opportunistic', learned_policy=None, train_mode=True, past_policy_outputs=[], past_actions=[], device="auto", history_size=1):
 	""" Converts a 3 axis har signal into a sparse version based on energy harvested.
 
 	In general: e_t+1 = e_t + e_h - e_l
@@ -98,7 +98,6 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 	# note that if the device dies, we apply opportunistic to get the first packet
 		# then use the policy for all subsequent packets
 	# initialize with -1
-	history_size = 50
 	e_input = np.zeros(2*history_size+1)-1
 	last_packet_k = -1
 
@@ -110,15 +109,15 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 	linear_usage = np.linspace(0,thresh,packet_size+1)[1:]
 
 	# keep track of model outputs so can apply loss and backprop
-	policy_outputs = []
+	policy_outputs = past_policy_outputs
 	actions = past_actions
 
 	# energy starts from 0 at time step 0 so simulate from timestep 1
 	k=1
-
+    
 	# iterate over energy values
 	while k < len(e_trace):
-		
+		APPLIED_POLICY = 0
 		# update energy state
 		e_trace[k] = e_trace[k-1] + e_harvest[k] - LEAKAGE_PER_SAMPLE
 		# print(k, e_trace[k],STATE,thresh,e_harvest[k],LEAKAGE_PER_SAMPLE)
@@ -199,7 +198,7 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 				else:
 					k += 1
 			# ON_CANT_TX -> ON_CAN_TX, ON_CANT_TX -> OFF, ON_CANT_TX -> ON_CANT_TX
-			elif STATE == DeviceState.ON_CANT_TX:
+			elif STATE == DeviceState.ON_CANT_TX or (STATE == DeviceState.ON_CANT_TX_DELAY and (k - delay_k) >= delay_size):
 				'''modification from opportunistic, check policy if to send, otherwise delay by a packet'''
 				# ON_CANT_TX -> ON_CAN_TX
 				if (e_trace[k] >= thresh + 5*LEAKAGE_PER_SAMPLE):
@@ -225,27 +224,38 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 						last_packet_k = k
 					# otherwise we can apply the policy
 					else: 
-						# store last history_size energy values for new packet
+						# store last history_size energy values for new packet 
+						# TODO: this is where the input is
 						e_input[history_size+1:] = e_trace[k-history_size:k]
 						e_input[history_size] = (k - last_packet_k)/k # divide by k to make between [0,1]
 						e_input = (e_input-np.mean(e_input))/(np.std(e_input)+1e-5)
 						# if decide not to send, then delay, otherwise send
-						rand_dec = np.random.uniform()
+						# rand_dec = np.random.uniform()
 						if train_mode:
-							policy_out = learned_policy(torch.tensor(e_input).float())
-							policy_outputs.append(policy_out)
-						else:
-							with torch.no_grad():
-								policy_out = learned_policy(torch.tensor(e_input).float())
+							policy_inputs = torch.cat([
+								torch.tensor(e_input[-history_size:], dtype=torch.float32, requires_grad=True, device=device), 
+								torch.tensor(policy_outputs[-history_size:], dtype=torch.float32, requires_grad=True, device=device)
+                            ])
+							policy_out = learned_policy(policy_inputs)
+							policy_outputs = torch.cat([policy_outputs, policy_out])
+							APPLIED_POLICY = 1
+						# else:
+						# 	# Else we did not send so output is 0
+						# 	# with torch.no_grad():
+						# 	# 	policy_out = learned_policy(torch.tensor(e_input).float())
+						# 	policy_out = torch.tensor(0.0, dtype=torch.float32)
+						# 	policy_outputs.append(policy_out)
 
 						# 0 is delay, 1 is send
-						# if random is less than policy out, then we picked 1, otherwise 0
-						actions.append(rand_dec < policy_out)
-						if rand_dec > policy_out:# < 0.5: 
+						# if random is less than policy out, then we picked 1, otherwise 0 # TODO: why??? 
+						# What is policy out?
+						actions = torch.cat([actions, policy_out > 0.5])
+						if policy_out < 0.5:
 							STATE = DeviceState.ON_CANT_TX_DELAY
 							delay_k = k
 							k += 1
 							continue
+						# since policy_opt > 0.5, send packet:
 						STATE = DeviceState.ON_CAN_TX
 						# we are within one packet of the end of the data
 						if k + packet_size + 1 >= len(e_trace):
@@ -272,14 +282,16 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 				else:
 					STATE = DeviceState.ON_CANT_TX
 					k += 1
-			elif STATE == DeviceState.ON_CANT_TX_DELAY: # stay delayed for some amount of time
-				# print(bp,k,STATE)
-				if (k - delay_k) >= delay_size:
-					STATE = DeviceState.ON_CAN_TX
-					# need to check policy again
-					k += 1
-				else:
-					k += 1
+			# Merged with DeviceState.ON_CANT_TX		
+			# elif STATE == DeviceState.ON_CANT_TX_DELAY: # stay delayed for some amount of time
+			# 	# print(bp,k,STATE)
+			# 	if (k - delay_k) >= delay_size:
+			# 		STATE = DeviceState.ON_CAN_TX
+			# 		# need to check policy again
+			# 		k += 1
+			# 	else:
+			# 		k += 1
+			
 			# ON_CAN_TX -> OFF, ON_CAN_TX -> ON_CANT_TX
 			elif STATE == DeviceState.ON_CAN_TX:
 				if e_trace[k] == 0: # device died
@@ -291,10 +303,13 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 				else:
 					STATE = DeviceState.ON_CANT_TX
 					k += 1
+					
+			if not APPLIED_POLICY:
+				policy_out = torch.tensor([0.0], dtype=torch.float32, device=device)
+				policy_outputs = torch.cat([policy_outputs, policy_out])
+				actions = torch.cat([actions, policy_out])
 
-			
-		''' ----------- Package Data after applying policies -------- '''
-
+		''' ----------- Package Data after applying policies -------- '''		
 		# masking the data based on energy
 		for acc in 'xyz':
 			df[acc+'_eh'] = df[acc] * valid
