@@ -70,7 +70,7 @@ if __name__ == '__main__':
 	loss_fn_har = torch.nn.CrossEntropyLoss()
 	loss_fn_policy = torch.nn.BCELoss()
 
-	for iteration in tqdm(range(ITERATIONS)):
+	for iteration in range(ITERATIONS):
 		Loss = 0
 		opp_batch_loss = 0
 		learned_batch_loss = 0
@@ -112,10 +112,12 @@ if __name__ == '__main__':
 
 			# classification loss
 			# opp_classification_loss = loss_fn_har(dense_outputs_opp,dense_targets.long())
-			learned_classification_loss = loss_fn_har(dense_outputs_learned, dense_targets.long())
+			learned_classification_loss = loss_fn_har(dense_outputs_learned, dense_targets)
+
+			print(dense_outputs_learned.shape, dense_targets.shape)
 
 			# policy loss (does mean by default)
-			policy_loss = loss_fn_policy(torch.cat(policy_outputs),actions)
+			policy_loss = loss_fn_policy(policy_outputs,actions)
 
 			# modulate loss by comparing policies
 			# Case 1: learned policy results in lower classification loss
@@ -132,9 +134,10 @@ if __name__ == '__main__':
 			# exit()
 
 			# Loss += 1/BATCH_SIZE*reference*policy_loss
-			Loss += 1/BATCH_SIZE * policy_loss
+			Loss += 1/BATCH_SIZE * learned_classification_loss
 
 			print('Policy loss', policy_loss)
+			print('Classification loss', learned_classification_loss)
 			print('Loss', Loss)
 
 			# opp_batch_loss += opp_classification_loss
