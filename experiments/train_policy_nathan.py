@@ -27,6 +27,7 @@ def sample_segment(duration, data, labels):
 
 if __name__ == '__main__':
 	device = "cuda" if torch.cuda.is_available() else "cpu"
+	device = "cpu"
 	# start tensorboard session
 	writer = SummaryWriter(os.path.join(PROJECT_ROOT,"saved_data/runs","policy")+"_"+str(time.time()))
 
@@ -48,7 +49,7 @@ if __name__ == '__main__':
 
 	# hyperparameters
 	BUFFER_SIZE = 5
-	IN_DIM = 101 + BUFFER_SIZE # 50 is buffer size # TODO: why is this 101?
+	IN_DIM = 2*BUFFER_SIZE
 	HIDDEN_DIM = 32
 	BATCH_SIZE = 32
 	LR = 1e-3
@@ -73,8 +74,8 @@ if __name__ == '__main__':
 		Loss = 0
 		opp_batch_loss = 0
 		learned_batch_loss = 0
-		policy_outputs = torch.zeros(50, dtype=torch.float32, requires_grad=True, device=device)
-		actions = torch.zeros(50, dtype=torch.float32, requires_grad=True, device=device)
+		policy_outputs = torch.zeros(BUFFER_SIZE, dtype=torch.float32, requires_grad=True, device=device)
+		actions = torch.zeros(BUFFER_SIZE, dtype=torch.float32, requires_grad=True, device=device)
 		for batch_idx in range(BATCH_SIZE):
 			policy_outputs = policy_outputs[-BUFFER_SIZE:]
 			actions = actions[-BUFFER_SIZE:]
@@ -114,7 +115,7 @@ if __name__ == '__main__':
 			learned_classification_loss = loss_fn_har(dense_outputs_learned, dense_targets.long())
 
 			# policy loss (does mean by default)
-			policy_loss = loss_fn_policy(torch.cat(policy_outputs),fake_labels)
+			policy_loss = loss_fn_policy(torch.cat(policy_outputs),actions)
 
 			# modulate loss by comparing policies
 			# Case 1: learned policy results in lower classification loss
@@ -132,6 +133,9 @@ if __name__ == '__main__':
 
 			# Loss += 1/BATCH_SIZE*reference*policy_loss
 			Loss += 1/BATCH_SIZE * policy_loss
+
+			print('Policy loss', policy_loss)
+			print('Loss', Loss)
 
 			# opp_batch_loss += opp_classification_loss
 			learned_batch_loss += learned_classification_loss

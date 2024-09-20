@@ -11,7 +11,8 @@ class DeviceState(Enum):
 	ON_CANT_TX_DELAY = 3 # have enough energy to send but delaying some time
 
 
-def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, init_overhead: float, \
+def sparsify_data(data_window: np.ndarray, 
+				  packet_size: int, leakage: float, init_overhead: float, \
 				  eh: EnergyHarvester, policy='opportunistic', learned_policy=None, train_mode=True, past_policy_outputs=[], past_actions=[], device="auto", history_size=1):
 	""" Converts a 3 axis har signal into a sparse version based on energy harvested.
 
@@ -56,6 +57,7 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 	sparse_data: tuple
 		TODO
 	"""
+	HISTORY_SIZE = history_size
 	
 	# applied each time step
 	LEAKAGE_PER_SAMPLE = leakage*(data_window[1,0]-data_window[0,0]) # leakage_power * 1/fs --> 1/fs is dt
@@ -67,7 +69,7 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 	delay_k = 0
 
 	# how much to delay if don't send
-	delay_size = 25
+	DELAY_SIZE = 25
 
 	# create pandas data frame as specified by EnergyHarvester.power() function
 	channels = np.array([0,1,2,3]) # time + 3 acc channels of body part
@@ -92,13 +94,13 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 	e_trace = np.zeros(len(e_out))
 
 	# history of energy values, used as input to policy
-	# 0-history_size -> energy values for last packet
-	# history_size -> time steps since last packet
-	# history_size+1-2*history_size+1 -> energy values for current packet
+	# 0-HISTORY_SIZE -> energy values for last packet
+	# HISTORY_SIZE -> time steps since last packet
+	# HISTORY_SIZE+1-2*HISTORY_SIZE+1 -> energy values for current packet
 	# note that if the device dies, we apply opportunistic to get the first packet
 		# then use the policy for all subsequent packets
 	# initialize with -1
-	e_input = np.zeros(2*history_size+1)-1
+	e_input = torch.zeros(HISTORY_SIZE)-1
 	last_packet_k = -1
 
 	# device state
@@ -109,15 +111,14 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 	linear_usage = np.linspace(0,thresh,packet_size+1)[1:]
 
 	# keep track of model outputs so can apply loss and backprop
-	policy_outputs = past_policy_outputs
-	actions = past_actions
+	policy_outputs = torch.zeros(HISTORY_SIZE, dtype=torch.float32, requires_grad=True)
+	actions = torch.zeros(HISTORY_SIZE, dtype=torch.float32, requires_grad=True)
 
 	# energy starts from 0 at time step 0 so simulate from timestep 1
 	k=1
     
 	# iterate over energy values
 	while k < len(e_trace):
-		APPLIED_POLICY = 0
 		# update energy state
 		e_trace[k] = e_trace[k-1] + e_harvest[k] - LEAKAGE_PER_SAMPLE
 		# print(k, e_trace[k],STATE,thresh,e_harvest[k],LEAKAGE_PER_SAMPLE)
@@ -184,11 +185,15 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 		''' ---------- Learned Policy'''
 		if policy == 'learned_policy':
 			# update device state
+			# print(STATE, e_trace[k], k)
 
+			# variable to keep track if policy is applied on this step
+			APPLIED_POLICY = 0
+			
 			if STATE == DeviceState.OFF: # turn on when have init overhead
-				# OFF -> ON_CANT_TX
+				# OFF -> ON_CAN_TX
 				if e_trace[k] >= 5*LEAKAGE_PER_SAMPLE + init_overhead:
-					STATE = DeviceState.ON_CANT_TX
+					STATE = DeviceState.ON_CAN_TX
 					try:
 						e_trace[k+1] = e_trace[k] - init_overhead # apply overhead instantly
 					except:
@@ -197,113 +202,84 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 				# OFF -> OFF
 				else:
 					k += 1
-			# ON_CANT_TX -> ON_CAN_TX, ON_CANT_TX -> OFF, ON_CANT_TX -> ON_CANT_TX
-			elif STATE == DeviceState.ON_CANT_TX or (STATE == DeviceState.ON_CANT_TX_DELAY and (k - delay_k) >= delay_size):
+			# ON_CANT_TX -> ON_CAN_TX, ON_CAN_TX -> ON_CANT_TX
+			elif STATE == DeviceState.ON_CAN_TX:
 				'''modification from opportunistic, check policy if to send, otherwise delay by a packet'''
 				# ON_CANT_TX -> ON_CAN_TX
 				if (e_trace[k] >= thresh + 5*LEAKAGE_PER_SAMPLE):
 					# if we haven't observed a packet yet, just opportuistically sample the first one
 					if e_input[0] == -1:
-						STATE = DeviceState.ON_CAN_TX
 						# we are within one packet of the end of the data
 						if k + packet_size + 1 >= len(e_trace):
 							valid[k+1:] = 1
 							e_trace[k+1:] = (-linear_usage[:len(e_trace)-k-1] + e_harvest[k+1:]) + e_trace[k]
 							k += (packet_size+1)
 							break
-						# once thresh is reached, we start sampling on the next sample
-						valid[k+1:k+1+packet_size] = 1
+						else:
+							# once thresh is reached, we start sampling on the next sample
+							valid[k+1:k+1+packet_size] = 1
 
-						# we apply linear energy usage for each sample and get harvested amount each step
-						e_trace[k+1:k+1+packet_size] = (-linear_usage[:] + e_harvest[k+1:k+1+packet_size]) + e_trace[k]
-						
-						k += (packet_size+1)
-
-						# store last history_size energy values
-						e_input[:history_size] = e_trace[k-history_size:k]
+							# we apply linear energy usage for each sample and get harvested amount each step
+							e_trace[k+1:k+1+packet_size] = (-linear_usage[:] + e_harvest[k+1:k+1+packet_size]) + e_trace[k]
+							
+							k += (packet_size+1)
+						# store last HISTORY_SIZE energy values
+						e_input = e_trace[k-HISTORY_SIZE:k]
 						last_packet_k = k
 					# otherwise we can apply the policy
 					else: 
-						# store last history_size energy values for new packet 
+						# store last HISTORY_SIZE energy values for new packet 
 						# TODO: this is where the input is
-						e_input[history_size+1:] = e_trace[k-history_size:k]
-						e_input[history_size] = (k - last_packet_k)/k # divide by k to make between [0,1]
-						e_input = (e_input-np.mean(e_input))/(np.std(e_input)+1e-5)
+						e_input = e_trace[k-HISTORY_SIZE:k]
+						# e_input = (e_input-np.mean(e_input))/(np.std(e_input)+1e-5) # TODO: can normalize later
 						# if decide not to send, then delay, otherwise send
 						# rand_dec = np.random.uniform()
 						if train_mode:
+							APPLIED_POLICY = 1
 							policy_inputs = torch.cat([
-								torch.tensor(e_input[-history_size:], dtype=torch.float32, requires_grad=True, device=device), 
-								torch.tensor(policy_outputs[-history_size:], dtype=torch.float32, requires_grad=True, device=device)
+								torch.tensor(e_input, dtype=torch.float32, requires_grad=True), 
+								policy_outputs[-HISTORY_SIZE:]
                             ])
 							policy_out = learned_policy(policy_inputs)
 							policy_outputs = torch.cat([policy_outputs, policy_out])
-							APPLIED_POLICY = 1
-						# else:
-						# 	# Else we did not send so output is 0
-						# 	# with torch.no_grad():
-						# 	# 	policy_out = learned_policy(torch.tensor(e_input).float())
-						# 	policy_out = torch.tensor(0.0, dtype=torch.float32)
-						# 	policy_outputs.append(policy_out)
 
 						# 0 is delay, 1 is send
-						# if random is less than policy out, then we picked 1, otherwise 0 # TODO: why??? 
+						# if policy_out > 0.5, then we picked 1, otherwise 0 # TODO: why??? 
 						# What is policy out?
-						actions = torch.cat([actions, policy_out > 0.5])
 						if policy_out < 0.5:
-							STATE = DeviceState.ON_CANT_TX_DELAY
-							delay_k = k
+							# the policy chose not to sample
+							actions = torch.cat([actions, torch.tensor([0.0], dtype=torch.float32, device=device)])
 							k += 1
 							continue
-						# since policy_opt > 0.5, send packet:
-						STATE = DeviceState.ON_CAN_TX
-						# we are within one packet of the end of the data
-						if k + packet_size + 1 >= len(e_trace):
-							valid[k+1:] = 1
-							e_trace[k+1:] = (-linear_usage[:len(e_trace)-k-1] + e_harvest[k+1:]) + e_trace[k]
-							k += (packet_size+1)
-							break
-						# once thresh is reached, we start sampling on the next sample
-						valid[k+1:k+1+packet_size] = 1
+						else:
+							# since policy_opt > 0.5, send packet:
+							# we are within one packet of the end of the data
+							if k + packet_size + 1 >= len(e_trace):
+								valid[k+1:] = 1
+								e_trace[k+1:] = (-linear_usage[:len(e_trace)-k-1] + e_harvest[k+1:]) + e_trace[k]
+								k += (packet_size+1)
+								break
+							else:
+								actions = torch.cat([actions, torch.tensor([1.0], dtype=torch.float32, device=device)])
+								# once thresh is reached, we start sampling on the next sample
+								valid[k+1:k+1+packet_size] = 1
 
-						# we apply linear energy usage for each sample and get harvested amount each step
-						e_trace[k+1:k+1+packet_size] = (-linear_usage[:] + e_harvest[k+1:k+1+packet_size]) + e_trace[k]
-						
-						k += (packet_size+1)
-
-						# store last history_size energy values
-						e_input[:history_size] = e_trace[k-history_size:k]
-						last_packet_k = k
-				# ON_CANT_TX -> OFF
-				elif e_trace[k] == 0:
-					STATE = DeviceState.OFF
-					k += 1
-				# ON_CANT_TX -> ON_CANT_TX
+								# we apply linear energy usage for each sample and get harvested amount each step
+								e_trace[k+1:k+1+packet_size] = (-linear_usage[:] + e_harvest[k+1:k+1+packet_size]) + e_trace[k]
+								
+								k += (packet_size+1)
 				else:
-					STATE = DeviceState.ON_CANT_TX
+					# ON_CAN_TX -> OFF, ON_CANT_TX -> OFF, 
+					if e_trace[k] == 0:
+						STATE = DeviceState.OFF 
+					elif e_trace[k] < thresh + 5*LEAKAGE_PER_SAMPLE:
+						STATE = DeviceState.ON_CANT_TX
 					k += 1
-			# Merged with DeviceState.ON_CANT_TX		
-			# elif STATE == DeviceState.ON_CANT_TX_DELAY: # stay delayed for some amount of time
-			# 	# print(bp,k,STATE)
-			# 	if (k - delay_k) >= delay_size:
-			# 		STATE = DeviceState.ON_CAN_TX
-			# 		# need to check policy again
-			# 		k += 1
-			# 	else:
-			# 		k += 1
-			
-			# ON_CAN_TX -> OFF, ON_CAN_TX -> ON_CANT_TX
-			elif STATE == DeviceState.ON_CAN_TX:
-				if e_trace[k] == 0: # device died
-					STATE = DeviceState.OFF
-					k += 1
-				elif e_trace[k] < thresh:
-					STATE = DeviceState.ON_CANT_TX
-					k += 1
-				else:
-					STATE = DeviceState.ON_CANT_TX
-					k += 1
-					
+			else:
+				if e_trace[k] >= thresh + 5*LEAKAGE_PER_SAMPLE:
+					STATE = DeviceState.ON_CAN_TX
+				k += 1
+							
 			if not APPLIED_POLICY:
 				policy_out = torch.tensor([0.0], dtype=torch.float32, device=device)
 				policy_outputs = torch.cat([policy_outputs, policy_out])
