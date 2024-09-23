@@ -27,8 +27,10 @@ def sample_segment(duration, data, labels):
 
 if __name__ == '__main__':
 	device = "cuda" if torch.cuda.is_available() else "cpu"
+	device = "cpu"
 	# start tensorboard session
-	writer = SummaryWriter(os.path.join(PROJECT_ROOT,"saved_data/runs","policy")+"_"+str(time.time()))
+	log_dir = os.path.join(PROJECT_ROOT,"saved_data/runs","policy")+"_"+str(time.time())
+	writer = SummaryWriter(log_dir)
 
 	# load data
 	root_dir = os.path.join(PROJECT_ROOT,"datasets/dsads_contig/merged_preprocess")
@@ -47,7 +49,7 @@ if __name__ == '__main__':
 	model.load_state_dict(torch.load(ckpt_path)['model_state_dict'])
 
 	# hyperparameters
-	BUFFER_SIZE = 20 # TODO: there may be an error when buffer size is not 20 
+	BUFFER_SIZE = 50 # TODO: there may be an error when buffer size is not 20 
 	IN_DIM = 2*BUFFER_SIZE
 	HIDDEN_DIM = 32
 	BATCH_SIZE = 32
@@ -73,6 +75,9 @@ if __name__ == '__main__':
 	# loss_fn_policy = torch.nn.BCELoss()
 
 	best_val_f1 = 0.0
+	fig, axs = plt.subplots(1,1)
+	plot_dir = os.path.join(log_dir, "plots")
+	os.makedirs(plot_dir)
 
 	for iteration in tqdm(range(ITERATIONS)):
 		Loss = 0
@@ -150,6 +155,10 @@ if __name__ == '__main__':
 						dense_targets.detach().cpu().numpy(), dense_preds.detach().cpu().numpy(), average='macro'
 					)
 
+					sample_times = (learned_packets[0]).long()
+					axs.plot(val_t_axis, learned_e_trace, label='energy trace')
+					axs.scatter(val_t_axis[sample_times], learned_e_trace[sample_times], label='sample points')
+
 			val_loss = val_loss / VAL_ITERATIONS
 			val_f1 = val_f1 / VAL_ITERATIONS
 
@@ -157,6 +166,10 @@ if __name__ == '__main__':
 
 			writer.add_scalar(f"val_metric/batch_loss", val_loss, iteration)
 			writer.add_scalar(f"val_metric/f1", val_f1, iteration)
+
+			plt.tight_layout()
+			plt.savefig(f"{plot_dir}/plot_{iteration}.png")
+			axs.cla()
 
 			if val_f1 > best_val_f1:
 				best_val_f1 = val_f1
@@ -166,3 +179,34 @@ if __name__ == '__main__':
 					'val_f1': val_f1,
 					'val_loss': val_loss,
 				}, ckpt_path)	
+	
+	# test
+	test_t_axis = np.arange(len(test_labels))/FS
+	test_t_axis = np.expand_dims(test_t_axis,axis=0).T
+	test_full_data_window = np.concatenate([test_t_axis,test_data],axis=1)
+
+	learned_packets, learned_e_trace, policy_outputs, actions = sparsify_data(
+		train_full_data_window,
+		PACKET_SIZE,LEAKAGE,INIT_OVERHEAD,eh,'learned_policy',policy,train_mode=True, 
+		device=device, history_size=BUFFER_SIZE, sample_frequency=FS)
+	
+	if len(learned_packets[0]) == 0:
+		# Policy did not sample at all
+		print("Policy did not sample at all...")
+
+	dense_outputs, dense_preds, dense_targets, dense_outputs_learned, dense_preds_learned, dense_targets_policy = classify_packets(val_segment_data,val_segment_labels,learned_packets,model,PACKET_SIZE, device=device)
+
+	learned_classification_loss = loss_fn_har(dense_outputs, dense_targets)
+
+	test_loss = learned_classification_loss
+	test_f1 = f1_score(
+		dense_targets.detach().cpu().numpy(), dense_preds.detach().cpu().numpy(), average='macro'
+	)
+
+	sample_times = (learned_packets[0]).long()
+	axs.plot(test_t_axis, learned_e_trace, label='energy trace')
+	axs.scatter(test_t_axis[sample_times], learned_e_trace[sample_times], label='sample points')
+	axs.legend()
+	plt.tight_layout()
+	plt.savefig(f"{log_dir}/test_plot.png")
+	plt.clf()

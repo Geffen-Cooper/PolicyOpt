@@ -212,7 +212,7 @@ def sparsify_data(data_window: np.ndarray,
 			elif STATE == DeviceState.ON_CAN_TX:
 				'''modification from opportunistic, check policy if to send, otherwise delay by a packet'''
 				# ON_CANT_TX -> ON_CAN_TX
-				if (e_trace[k] >= thresh + 5*LEAKAGE_PER_SAMPLE) and k >= FS * HISTORY_SIZE:
+				if (e_trace[k] >= thresh + 5*LEAKAGE_PER_SAMPLE): # and k >= FS * HISTORY_SIZE:
 					# if we haven't observed a packet yet, just opportuistically sample the first one
 					# if e_input[0] == -1:
 					# 	# we are within one packet of the end of the data
@@ -392,7 +392,7 @@ def classify_packets(raw_data, labels, packets, classifier, window_size, device=
 		# print(first_sample_idx,win_i,num_windows,sample_idx)
 		win = raw_data[sample_idx-window_size+1:sample_idx+1,:] # window
 		win = torch.tensor(win, dtype=torch.float32, device=device).T.unsqueeze(0)
-		target = torch.tensor([labels[sample_idx-window_size+1]], dtype=torch.long, device=device)
+		target = torch.tensor([labels[sample_idx]], dtype=torch.long, device=device)
 		dense_targets = torch.cat([dense_targets, target]) # last sample in packet
 		# make prediction
 		with torch.no_grad(): out = classifier(win)
