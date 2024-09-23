@@ -27,7 +27,6 @@ def sample_segment(duration, data, labels):
 
 if __name__ == '__main__':
 	device = "cuda" if torch.cuda.is_available() else "cpu"
-	device = "cpu"
 	# start tensorboard session
 	writer = SummaryWriter(os.path.join(PROJECT_ROOT,"saved_data/runs","policy")+"_"+str(time.time()))
 
@@ -48,7 +47,7 @@ if __name__ == '__main__':
 	model.load_state_dict(torch.load(ckpt_path)['model_state_dict'])
 
 	# hyperparameters
-	BUFFER_SIZE = 5
+	BUFFER_SIZE = 20 # TODO: there may be an error when buffer size is not 20 
 	IN_DIM = 2*BUFFER_SIZE
 	HIDDEN_DIM = 32
 	BATCH_SIZE = 32
@@ -56,6 +55,7 @@ if __name__ == '__main__':
 	MOMENTUM = 0.9
 	WD = 1e-4
 	ITERATIONS = 5000
+	VAL_EVERY_ITERATIONS = 10
 
 	DURATION = 30 # length of segments in seconds
 	FS = 25 # sampling frequency
@@ -63,93 +63,106 @@ if __name__ == '__main__':
 	LEAKAGE = 6e-6
 	INIT_OVERHEAD = 150e-6
 
+	assert(PACKET_SIZE <= BUFFER_SIZE), f"Packet size must be smaller than buffer size. Got packet size {PACKET_SIZE} and buffer size {BUFFER_SIZE}"
+
 	eh = EnergyHarvester()
 
 	policy = EnergyPolicy(IN_DIM,HIDDEN_DIM).to(device)
 	opt = torch.optim.SGD(policy.parameters(),lr=LR,momentum=MOMENTUM,weight_decay=WD)
 	loss_fn_har = torch.nn.CrossEntropyLoss()
-	loss_fn_policy = torch.nn.BCELoss()
+	# loss_fn_policy = torch.nn.BCELoss()
 
-	for iteration in range(ITERATIONS):
+	best_val_f1 = 0.0
+
+	for iteration in tqdm(range(ITERATIONS)):
 		Loss = 0
 		opp_batch_loss = 0
 		learned_batch_loss = 0
-		policy_outputs = torch.zeros(BUFFER_SIZE, dtype=torch.float32, requires_grad=True, device=device)
-		actions = torch.zeros(BUFFER_SIZE, dtype=torch.float32, requires_grad=True, device=device)
 		for batch_idx in range(BATCH_SIZE):
-			policy_outputs = policy_outputs[-BUFFER_SIZE:]
-			actions = actions[-BUFFER_SIZE:]
-			segment_data, segment_labels = sample_segment(DURATION*FS, train_data, train_labels) # what are train_labels? A: activity labels
+			train_segment_data, train_segment_labels = sample_segment(DURATION*FS, train_data, train_labels)
+			train_segment_labels = torch.tensor(train_segment_labels, dtype=torch.long, device=device)
 
 			# add time axis
-			t_axis = np.arange(len(segment_labels))/FS
-			t_axis = np.expand_dims(t_axis,axis=0).T
+			train_t_axis = np.arange(len(train_segment_labels))/FS
+			train_t_axis = np.expand_dims(train_t_axis,axis=0).T
 
 			# add the time axis to the data
-			full_data_window = np.concatenate([t_axis,segment_data],axis=1)
-
-			# opp_packets, opp_e_trace = sparsify_data(full_data_window,PACKET_SIZE,LEAKAGE,INIT_OVERHEAD,eh,'opportunistic',train_mode=False)
+			train_full_data_window = np.concatenate([train_t_axis,train_segment_data],axis=1)
 			
-            # this is where the constraints of the problem are....
 			learned_packets, learned_e_trace, policy_outputs, actions = sparsify_data(
-				full_data_window,
+				train_full_data_window,
 				PACKET_SIZE,LEAKAGE,INIT_OVERHEAD,eh,'learned_policy',policy,train_mode=True, 
-				past_policy_outputs=policy_outputs, past_actions=actions, device=device, history_size=BUFFER_SIZE)
-
-			# if len(opp_packets[0]) == 0 or len(learned_packets[0]) == 0:
-			# 	print(opp_packets[0],learned_packets[0])
-			# 	continue
-
-			# dense_outputs, dense_preds, dense_targets, dense_outputs_opp, dense_preds_opp, dense_targets_policy = classify_packets(segment_data,segment_labels,opp_packets,model,PACKET_SIZE)
-			# exit()
-			dense_outputs, dense_preds, dense_targets, dense_outputs_learned, dense_preds_learned, dense_targets_policy = classify_packets(segment_data,segment_labels,learned_packets,model,PACKET_SIZE)
-
-			# fake_labels = (torch.cat(policy_outputs) > 0.5).float()
-			try:
-				fake_labels = torch.cat(actions).float()
-			except:
+				device=device, history_size=BUFFER_SIZE, sample_frequency=FS)
+			
+			if len(learned_packets[0]) == 0:
+				# Policy did not sample at all
 				continue
 
+			dense_outputs, dense_preds, dense_targets, dense_outputs_learned, dense_preds_learned, dense_targets_policy = classify_packets(train_segment_data,train_segment_labels,learned_packets,model,PACKET_SIZE, device=device)
+
 			# classification loss
-			# opp_classification_loss = loss_fn_har(dense_outputs_opp,dense_targets.long())
-			learned_classification_loss = loss_fn_har(dense_outputs_learned, dense_targets)
-
-			print(dense_outputs_learned.shape, dense_targets.shape)
-
-			# policy loss (does mean by default)
-			policy_loss = loss_fn_policy(policy_outputs,actions)
-
-			# modulate loss by comparing policies
-			# Case 1: learned policy results in lower classification loss
-			#	-then reference is (+) and we reinforce current decisions
-			# Case 2: learned policy results in higher classification loss
-			#	-then reference is (-) and we flip sign of gradient to discourage decisions
-			# reference =  opp_classification_loss - learned_classification_loss
-			# print(f"iteration: {iteration}, batch_idx: {batch_idx}, opp_cl_loss: {opp_classification_loss}, l_cl_loss: {learned_classification_loss}")
-
-			# print(opp_classification_loss, learned_classification_loss, policy_loss)
-			# print(dense_outputs_opp.shape,dense_targets.shape)
-			# print(F.softmax(dense_outputs_opp,dim=1).shape)
-			# print(F.softmax(dense_outputs_opp,dim=1)[:,int(dense_targets[0])], dense_targets)
-			# exit()
-
-			# Loss += 1/BATCH_SIZE*reference*policy_loss
+			learned_classification_loss = loss_fn_har(dense_outputs, dense_targets)
 			Loss += 1/BATCH_SIZE * learned_classification_loss
-
-			print('Policy loss', policy_loss)
-			print('Classification loss', learned_classification_loss)
-			print('Loss', Loss)
-
-			# opp_batch_loss += opp_classification_loss
 			learned_batch_loss += learned_classification_loss
-
-		# writer.add_scalar(f"c_loss/diff", opp_batch_loss/BATCH_SIZE-learned_batch_loss/BATCH_SIZE, iteration)
-		writer.add_scalar(f"c_loss/learned", learned_batch_loss/BATCH_SIZE, iteration)
+			# learned_classification_loss.register_hook(lambda grad: print('Gradient:', grad))
 
 		opt.zero_grad()
 		Loss.backward()
 		opt.step()
 
-		writer.add_scalar(f"train_metric/batch_loss", Loss, iteration)
+		train_f1 = f1_score(
+			dense_targets.detach().cpu().numpy(), dense_preds.detach().cpu().numpy(), average='macro'
+			)
+		
+		print(f"Iteration: {iteration}, batch loss: {Loss}, train f1 score: {train_f1}")
 
-		print(f"Iteration: {iteration}, batch loss: {Loss}")
+		writer.add_scalar(f"train_metric/batch_loss", Loss, iteration)
+		writer.add_scalar(f"train_metric/f1", train_f1, iteration)
+		
+		# validation
+		if iteration != 0 and iteration % VAL_EVERY_ITERATIONS == 0:
+			VAL_ITERATIONS = 5
+			val_f1 = 0.0
+			val_loss = 0.0
+			for e in range(VAL_ITERATIONS):
+
+				with torch.no_grad():
+					val_segment_data, val_segment_labels = sample_segment(DURATION*FS, val_data, val_labels)
+					val_t_axis = np.arange(len(val_segment_labels))/FS
+					val_t_axis = np.expand_dims(val_t_axis,axis=0).T
+					val_full_data_window = np.concatenate([val_t_axis,val_segment_data],axis=1)
+
+					learned_packets, learned_e_trace, policy_outputs, actions = sparsify_data(
+						train_full_data_window,
+						PACKET_SIZE,LEAKAGE,INIT_OVERHEAD,eh,'learned_policy',policy,train_mode=True, 
+						device=device, history_size=BUFFER_SIZE, sample_frequency=FS)
+					
+					if len(learned_packets[0]) == 0:
+						# Policy did not sample at all
+						continue
+
+					dense_outputs, dense_preds, dense_targets, dense_outputs_learned, dense_preds_learned, dense_targets_policy = classify_packets(val_segment_data,val_segment_labels,learned_packets,model,PACKET_SIZE, device=device)
+
+					learned_classification_loss = loss_fn_har(dense_outputs, dense_targets)
+
+					val_loss += learned_classification_loss
+					val_f1 += f1_score(
+						dense_targets.detach().cpu().numpy(), dense_preds.detach().cpu().numpy(), average='macro'
+					)
+
+			val_loss = val_loss / VAL_ITERATIONS
+			val_f1 = val_f1 / VAL_ITERATIONS
+
+			print(f"Iteration: {iteration}, val_f1_score: {val_f1}")
+
+			writer.add_scalar(f"val_metric/batch_loss", val_loss, iteration)
+			writer.add_scalar(f"val_metric/f1", val_f1, iteration)
+
+			if val_f1 > best_val_f1:
+				best_val_f1 = val_f1
+				torch.save({
+					'epoch': iteration + 1,
+					'model_state_dict': model.state_dict(),
+					'val_f1': val_f1,
+					'val_loss': val_loss,
+				}, ckpt_path)	

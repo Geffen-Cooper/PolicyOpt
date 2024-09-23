@@ -13,7 +13,7 @@ class DeviceState(Enum):
 
 def sparsify_data(data_window: np.ndarray, 
 				  packet_size: int, leakage: float, init_overhead: float, \
-				  eh: EnergyHarvester, policy='opportunistic', learned_policy=None, train_mode=True, past_policy_outputs=[], past_actions=[], device="auto", history_size=1):
+				  eh: EnergyHarvester, policy='opportunistic', learned_policy=None, train_mode=True, device="auto", history_size=1, sample_frequency=25):
 	""" Converts a 3 axis har signal into a sparse version based on energy harvested.
 
 	In general: e_t+1 = e_t + e_h - e_l
@@ -57,18 +57,22 @@ def sparsify_data(data_window: np.ndarray,
 	sparse_data: tuple
 		TODO
 	"""
+	# TODO: make FS an input
+	FS = sample_frequency
 	HISTORY_SIZE = history_size
 	
 	# applied each time step
 	LEAKAGE_PER_SAMPLE = leakage*(data_window[1,0]-data_window[0,0]) # leakage_power * 1/fs --> 1/fs is dt
 
 	# store the sampled packets
-	packets = None
+	# packets = None
+	# arrival_times = torch.tensor([], dtype=torch.float32, device=device, requires_grad=True)
 
 	# keep track of time delayed when don't send a packet
 	delay_k = 0
 
 	# how much to delay if don't send
+	# TODO:
 	DELAY_SIZE = 25
 
 	# create pandas data frame as specified by EnergyHarvester.power() function
@@ -111,8 +115,8 @@ def sparsify_data(data_window: np.ndarray,
 	linear_usage = np.linspace(0,thresh,packet_size+1)[1:]
 
 	# keep track of model outputs so can apply loss and backprop
-	policy_outputs = torch.zeros(HISTORY_SIZE, dtype=torch.float32, requires_grad=True)
-	actions = torch.zeros(HISTORY_SIZE, dtype=torch.float32, requires_grad=True)
+	policy_outputs = torch.zeros(len(e_trace), dtype=torch.float32, requires_grad=True, device=device)
+	actions = torch.zeros(len(e_trace), dtype=torch.bool, device=device)
 
 	# energy starts from 0 at time step 0 so simulate from timestep 1
 	k=1
@@ -191,24 +195,72 @@ def sparsify_data(data_window: np.ndarray,
 			APPLIED_POLICY = 0
 			
 			if STATE == DeviceState.OFF: # turn on when have init overhead
-				# OFF -> ON_CAN_TX
+				# OFF -> ON_CAN_TX or OFF -> ON_CANT_TX
 				if e_trace[k] >= 5*LEAKAGE_PER_SAMPLE + init_overhead:
 					STATE = DeviceState.ON_CAN_TX
 					try:
 						e_trace[k+1] = e_trace[k] - init_overhead # apply overhead instantly
+						e_trace[k+2] = e_trace[k+1] - LEAKAGE_PER_SAMPLE
 					except:
 						break
 					k += 2
 				# OFF -> OFF
 				else:
 					k += 1
+		
 			# ON_CANT_TX -> ON_CAN_TX, ON_CAN_TX -> ON_CANT_TX
 			elif STATE == DeviceState.ON_CAN_TX:
 				'''modification from opportunistic, check policy if to send, otherwise delay by a packet'''
 				# ON_CANT_TX -> ON_CAN_TX
-				if (e_trace[k] >= thresh + 5*LEAKAGE_PER_SAMPLE):
+				if (e_trace[k] >= thresh + 5*LEAKAGE_PER_SAMPLE) and k >= FS * HISTORY_SIZE:
 					# if we haven't observed a packet yet, just opportuistically sample the first one
-					if e_input[0] == -1:
+					# if e_input[0] == -1:
+					# 	# we are within one packet of the end of the data
+					# 	if k + packet_size + 1 >= len(e_trace):
+					# 		valid[k+1:] = 1
+					# 		e_trace[k+1:] = (-linear_usage[:len(e_trace)-k-1] + e_harvest[k+1:]) + e_trace[k]
+					# 		k += (packet_size+1)
+					# 		break
+					# 	else:
+					# 		# once thresh is reached, we start sampling on the next sample
+					# 		valid[k+1:k+1+packet_size] = 1
+
+					# 		# we apply linear energy usage for each sample and get harvested amount each step
+					# 		e_trace[k+1:k+1+packet_size] = (-linear_usage[:] + e_harvest[k+1:k+1+packet_size]) + e_trace[k]
+							
+					# 		k += (packet_size+1)
+					# 	# store last HISTORY_SIZE energy values
+					# 	e_input = e_trace[k-HISTORY_SIZE:k]
+					# 	last_packet_k = k
+					# otherwise we can apply the policy
+					# else: 
+					# store last HISTORY_SIZE energy values for new packet 
+					# TODO: this is where the input is
+					# e_input = (e_input-np.mean(e_input))/(np.std(e_input)+1e-5) # TODO: can normalize later
+					# if decide not to send, then delay, otherwise send
+					# rand_dec = np.random.uniform()
+					if train_mode:
+						APPLIED_POLICY = 1
+						e_input = e_trace[k-HISTORY_SIZE:k]
+						policy_inputs = torch.cat([
+							torch.tensor(e_input, dtype=torch.float32, requires_grad=True, device=device), 
+							policy_outputs[-HISTORY_SIZE:]
+						])
+						policy_out = learned_policy(policy_inputs)
+						# policy_outputs = torch.cat([policy_outputs, policy_out])
+						policy_output_clone = policy_outputs.clone()
+						policy_output_clone[k] = policy_out
+						policy_outputs.data.copy_(policy_output_clone)
+
+					# 0 is delay, 1 is send
+					# if policy_out > 0.5, then we picked 1, otherwise 0
+					# Need to first collect HISTORY_SIZE samples before device can start transmitting
+					if policy_out < 0.5:
+						# the policy chose not to sample
+						k += 1
+						continue
+					else:
+						# since policy_opt > 0.5, send packet:
 						# we are within one packet of the end of the data
 						if k + packet_size + 1 >= len(e_trace):
 							valid[k+1:] = 1
@@ -216,6 +268,11 @@ def sparsify_data(data_window: np.ndarray,
 							k += (packet_size+1)
 							break
 						else:
+							# actions_k = actions.clone()
+							# actions_k[k] = 1
+							# actions.data.copy_(actions_k)
+							# print(actions[k])
+
 							# once thresh is reached, we start sampling on the next sample
 							valid[k+1:k+1+packet_size] = 1
 
@@ -223,105 +280,57 @@ def sparsify_data(data_window: np.ndarray,
 							e_trace[k+1:k+1+packet_size] = (-linear_usage[:] + e_harvest[k+1:k+1+packet_size]) + e_trace[k]
 							
 							k += (packet_size+1)
-						# store last HISTORY_SIZE energy values
-						e_input = e_trace[k-HISTORY_SIZE:k]
-						last_packet_k = k
-					# otherwise we can apply the policy
-					else: 
-						# store last HISTORY_SIZE energy values for new packet 
-						# TODO: this is where the input is
-						e_input = e_trace[k-HISTORY_SIZE:k]
-						# e_input = (e_input-np.mean(e_input))/(np.std(e_input)+1e-5) # TODO: can normalize later
-						# if decide not to send, then delay, otherwise send
-						# rand_dec = np.random.uniform()
-						if train_mode:
-							APPLIED_POLICY = 1
-							policy_inputs = torch.cat([
-								torch.tensor(e_input, dtype=torch.float32, requires_grad=True), 
-								policy_outputs[-HISTORY_SIZE:]
-                            ])
-							policy_out = learned_policy(policy_inputs)
-							policy_outputs = torch.cat([policy_outputs, policy_out])
 
-						# 0 is delay, 1 is send
-						# if policy_out > 0.5, then we picked 1, otherwise 0 # TODO: why??? 
-						# What is policy out?
-						if policy_out < 0.5:
-							# the policy chose not to sample
-							actions = torch.cat([actions, torch.tensor([0.0], dtype=torch.float32, device=device)])
-							k += 1
-							continue
-						else:
-							# since policy_opt > 0.5, send packet:
-							# we are within one packet of the end of the data
-							if k + packet_size + 1 >= len(e_trace):
-								valid[k+1:] = 1
-								e_trace[k+1:] = (-linear_usage[:len(e_trace)-k-1] + e_harvest[k+1:]) + e_trace[k]
-								k += (packet_size+1)
-								break
-							else:
-								actions = torch.cat([actions, torch.tensor([1.0], dtype=torch.float32, device=device)])
-								# once thresh is reached, we start sampling on the next sample
-								valid[k+1:k+1+packet_size] = 1
-
-								# we apply linear energy usage for each sample and get harvested amount each step
-								e_trace[k+1:k+1+packet_size] = (-linear_usage[:] + e_harvest[k+1:k+1+packet_size]) + e_trace[k]
-								
-								k += (packet_size+1)
+				# ON_CAN_TX -> OFF, ON_CANT_TX -> OFF, ON
+				elif e_trace[k] == 0:
+					STATE = DeviceState.OFF 
+					k += 1
 				else:
-					# ON_CAN_TX -> OFF, ON_CANT_TX -> OFF, 
-					if e_trace[k] == 0:
-						STATE = DeviceState.OFF 
-					elif e_trace[k] < thresh + 5*LEAKAGE_PER_SAMPLE:
-						STATE = DeviceState.ON_CANT_TX
 					k += 1
 			else:
-				if e_trace[k] >= thresh + 5*LEAKAGE_PER_SAMPLE:
-					STATE = DeviceState.ON_CAN_TX
 				k += 1
-							
-			if not APPLIED_POLICY:
-				policy_out = torch.tensor([0.0], dtype=torch.float32, device=device)
-				policy_outputs = torch.cat([policy_outputs, policy_out])
-				actions = torch.cat([actions, policy_out])
 
-		''' ----------- Package Data after applying policies -------- '''		
-		# masking the data based on energy
-		for acc in 'xyz':
-			df[acc+'_eh'] = df[acc] * valid
+	''' ----------- Package Data after applying policies -------- '''		
+	# masking the data based on energy
+	for acc in 'xyz':
+		df[acc+'_eh'] = df[acc] * valid
 
-		# get the transition points of the masked data to see where packets start and end
-		og_data = df[acc+'_eh'].values
-		rolled_data = np.roll(og_data, 1)
-		rolled_data[0] = np.nan # in case we end halfway through a valid packet
-		nan_to_num_transition_indices = np.where(~np.isnan(og_data) & np.isnan(rolled_data))[0] # arrival idxs
-		num_to_nan_transition_indices = np.where(np.isnan(og_data) & ~np.isnan(rolled_data))[0] # ending idxs
+	# get the transition points of the masked data to see where packets start and end
+	og_data = df[acc+'_eh'].values
+	rolled_data = np.roll(og_data, 1) # in case we end halfway through a valid packet
+	rolled_data[0] = np.nan
+	nan_to_num_transition_indices = np.where(~np.isnan(og_data) & np.isnan(rolled_data))[0] # arrival idxs
+	num_to_nan_transition_indices = np.where(np.isnan(og_data) & ~np.isnan(rolled_data))[0] # ending idxs
+	
+	# now get the actually sampled data as a list of windows
+	arr = torch.tensor(df[['x_eh','y_eh','z_eh']].values, dtype=torch.float32, device=device, requires_grad=False)
+	packet_data = [                                                                               
+		# this zip operation is important because if we end halfway through a packet it is skipped (number of starts and ends must match)
+		arr[packet_start_idx : packet_end_idx] for packet_start_idx,packet_end_idx in zip(nan_to_num_transition_indices,num_to_nan_transition_indices)
+	]
+	
+	# get the arrival time of each packet (note that the arrival time is the end of the data)
+	# time_idxs = torch.tensor(df['time'].values, dtype=torch.float32, device=device, requires_grad=True)
+	# arrival_times = [
+	# 	time_idxs[packet_end_idx-1] for packet_end_idx in num_to_nan_transition_indices
+	# ]
+	time_idxs = torch.arange(len(df['time'].values), dtype=torch.float32, device=device, requires_grad=True)
+
+	actions = torch.where(policy_outputs > 0.5, 1, 0).to(torch.bool)
+	arrival_times = torch.masked_select(time_idxs, torch.roll(actions, packet_size-1))
+	# cond = arrival_times > packet_size * (time_idxs[1] - time_idxs[0])
+	cond = arrival_times > FS * packet_size
+	arrival_times = arrival_times.clone().requires_grad_(True)[cond]
 		
-		# now get the actually sampled data as a list of windows
-		arr = df[['x_eh','y_eh','z_eh']].values
-		packet_data = [                                                                               # this zip operation is important because if we end halfway through a packet it is skipped (number of starts and ends must match)
-						arr[packet_start_idx : packet_end_idx] for packet_start_idx,packet_end_idx in zip(nan_to_num_transition_indices,num_to_nan_transition_indices)
-						]
-		
-		# get the arrival time of each packet (note that the arrival time is the end of the data)
-		time_idxs = df['time']
-		arrival_times = [ 
-						time_idxs[packet_end_idx-1] for packet_end_idx in num_to_nan_transition_indices
-						]
-		
-		# each item in the list is a packet_size x 3 array, so we just stack into one array
-		if len(packet_data) > 0:
-			packet_data = np.stack(packet_data)
-			
-		# we make the list into an array of packet_size x 1
-		if len(arrival_times) > 0:
-			arrival_times = np.stack(arrival_times)
-		else:
-			arrival_times = np.array(arrival_times)
-		
-		# store as a tuple
-		# entry 0 is P x 1 and entry 1 is P x packet_size x 3
-		packets = (arrival_times,packet_data)
+	# each item in the list is a packet_size x 3 array, so we just stack into one array			
+	# we make the list into an array of packet_size x 1
+	if len(packet_data) > 0:
+		packet_data = torch.stack(packet_data)
+
+	# store as a tuple
+	# entry 0 is P x 1 and entry 1 is P x packet_size x 3
+	packets = (arrival_times,packet_data)
+
 	# import matplotlib.pyplot as plt
 	# plt.plot(e_out)
 	# plt.plot(e_trace)
@@ -336,70 +345,106 @@ def sparsify_data(data_window: np.ndarray,
 
 
 # given the output of a policy, get the classification results
-def classify_packets(raw_data, labels, packets, classifier, window_size):
-	
-	first_sample_idx = int(packets[0][0]*25)
+def classify_packets(raw_data, labels, packets, classifier, window_size, device="auto"):
+	""" Given the output of a policy, get the classification results
+
+	Parameters
+	----------
+
+	raw_data: torch.tensor
+		(T x 3) tensor of window packet data
+
+	labels: torch.tensor
+		(T,) tensor of window HAR labels for raw_data
+
+	packets: (torch.tensor, torch.tensor)
+		Tuple where entry 0 is the arrival times (P x 1) and entry 1 is the packet data (P x packet_size x 3)
+
+	classifier: nn.Module
+		A PyTorch model which takes sensor data as input and outputs a HAR classification decision.
+
+	Returns
+	-------
+
+	dense_outputs: torch.tensor
+
+	dense_preds: torch.tensor
+
+	dense_targets: torch.tensor
+
+	dense_outputs_policy: torch.tensor
+
+	dense_preds_policy: torch.tensor
+
+	dense_targets_policy: torch.tensor
+	"""
+	DELAY_SIZE = 1
+	first_sample_idx = int(packets[0][0]*DELAY_SIZE)
 
 	# classify every single sample
 	num_windows = len(labels) - first_sample_idx
-	dense_outputs = []
-	dense_preds = torch.zeros(num_windows)
-	dense_targets = torch.zeros(num_windows)
-	for win_i in range(num_windows):
-		sample_idx = win_i+first_sample_idx
+	dense_outputs = torch.tensor([], dtype=torch.float32, device=device, requires_grad=True)
+	dense_preds = torch.tensor([], dtype=torch.float32, device=device)
+	dense_targets = torch.tensor([], dtype=torch.long, device=device)
+	for win_i in packets[0]:
+		# sample_idx = win_i+first_sample_idx
+		sample_idx = int(win_i)
 		# print(first_sample_idx,win_i,num_windows,sample_idx)
-		win = torch.tensor(raw_data[sample_idx-window_size+1:sample_idx+1,:]).float().T.unsqueeze(0)
-		dense_targets[win_i] = labels[sample_idx-window_size+1] # last sample in packet
+		win = raw_data[sample_idx-window_size+1:sample_idx+1,:] # window
+		win = torch.tensor(win, dtype=torch.float32, device=device).T.unsqueeze(0)
+		target = torch.tensor([labels[sample_idx-window_size+1]], dtype=torch.long, device=device)
+		dense_targets = torch.cat([dense_targets, target]) # last sample in packet
 		# make prediction
-		with torch.no_grad():
-			out = classifier(win)
-		dense_outputs.append(out)
-		dense_preds[win_i] = torch.argmax(out)
-	dense_outputs = torch.stack(dense_outputs)
+		with torch.no_grad(): out = classifier(win)
+		dense_outputs = torch.cat([dense_outputs, torch.sigmoid(out)]) # TODO maybe dimension is wrong?
+		dense_preds = torch.cat([dense_preds, torch.argmax(torch.sigmoid(out)).unsqueeze(0)])
+	# dense_outputs = torch.stack(dense_outputs)
 		
 	# classify provided packet and extend predictions
 	dense_outputs_policy = []
-	dense_preds_policy = torch.zeros(num_windows)
+	dense_preds_policy = torch.tensor([], dtype=torch.float32, device=device)
 	last_prediction_idx = 0
 	last_pred = None
 	last_out = None
 	count = 0
 	for packet_i, (at,win) in enumerate(zip(packets[0],packets[1])):
 		# get next window
-		sample_idx = int(at*25)
+		sample_idx = int(at*DELAY_SIZE)
 		
-		win = torch.tensor(win).float().T.unsqueeze(0)
+		win = win.T.unsqueeze(0)
+		# win = torch.tensor(win, dtype=torch.float32, device=device).T.unsqueeze(0)
 		
 		# extend previous prediction
 		if packet_i > 0:
 			count += sample_idx-last_prediction_idx
 			# extend output to duration of prediction
-			dense_outputs_policy.append(last_out.repeat(sample_idx-last_prediction_idx,1))
-			dense_preds_policy[last_prediction_idx:sample_idx] = last_pred
+			if last_out is not None:
+				dense_outputs_policy.append(last_out.repeat(sample_idx-last_prediction_idx,1))
+				dense_preds_policy[last_prediction_idx:sample_idx] = last_pred
 
-		# print(f"first_sample_idx:{first_sample_idx}, packet_i:{packet_i}, at_sample:{int(at*25)}, sample_idx:{sample_idx}, count: {count}")
+		# print(f"first_sample_idx:{first_sample_idx}, packet_i:{packet_i}, at_sample:{int(at*DELAY_SIZE)}, sample_idx:{sample_idx}, count: {count}")
 
 		# make prediction
-		with torch.no_grad():
-			out = classifier(win)
+		with torch.no_grad(): out = classifier(win)
 		last_out = out
 		last_pred = torch.argmax(out)
 
 		last_prediction_idx = sample_idx
 
 	# extend on the last one
-	count += (len(labels)-last_prediction_idx)
-	dense_outputs_policy.append(last_out.repeat(len(labels)-last_prediction_idx,1))
-	dense_preds_policy[last_prediction_idx:] = last_pred
+	if last_out is not None:
+		count += (len(labels)-last_prediction_idx)
+		dense_outputs_policy.append(last_out.repeat(len(labels)-last_prediction_idx,1))
+		dense_preds_policy[last_prediction_idx:] = last_pred
+		dense_outputs_policy = torch.cat(dense_outputs_policy)
 
-	# print(f"first_sample_idx:{first_sample_idx}, packet_i:{packet_i}, at_sample:{int(at*25)}, sample_idx:{sample_idx}, count: {count}")
+	# print(f"first_sample_idx:{first_sample_idx}, packet_i:{packet_i}, at_sample:{int(at*DELAY_SIZE)}, sample_idx:{sample_idx}, count: {count}")
 
-
-	dense_outputs_policy = torch.cat(dense_outputs_policy)
 	# print(dense_outputs_policy.shape,dense_preds_policy.shape,labels[first_sample_idx:].shape)
 
 	dense_targets_policy = labels[first_sample_idx:]
 
+	# TODO: only get the outputs, targets, and predictions at sampling timestep...
 	# from these we can get the loss over the sequence, the accuracy, etc
 	# we return the whole thing because we may want to visualize what predictions would have been for unseen data
 	return dense_outputs, dense_preds, dense_targets, dense_outputs_policy, dense_preds_policy, dense_targets_policy
