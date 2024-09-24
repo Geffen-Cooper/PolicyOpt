@@ -120,6 +120,8 @@ def sparsify_data(data_window: np.ndarray,
 
 	# energy starts from 0 at time step 0 so simulate from timestep 1
 	k=1
+
+	startup_time = len(e_trace)
     
 	# iterate over energy values
 	while k < len(e_trace):
@@ -147,6 +149,7 @@ def sparsify_data(data_window: np.ndarray,
 						e_trace[k+1] = e_trace[k] - init_overhead # apply overhead instantly
 					except:
 						break
+					startup_time = k
 					k += 2
 				# OFF -> OFF
 				else:
@@ -191,9 +194,6 @@ def sparsify_data(data_window: np.ndarray,
 			# update device state
 			# print(STATE, e_trace[k], k)
 
-			# variable to keep track if policy is applied on this step
-			APPLIED_POLICY = 0
-			
 			if STATE == DeviceState.OFF: # turn on when have init overhead
 				# OFF -> ON_CAN_TX or OFF -> ON_CANT_TX
 				if e_trace[k] >= 5*LEAKAGE_PER_SAMPLE + init_overhead:
@@ -203,6 +203,7 @@ def sparsify_data(data_window: np.ndarray,
 						e_trace[k+2] = e_trace[k+1] - LEAKAGE_PER_SAMPLE
 					except:
 						break
+					startup_time = k
 					k += 2
 				# OFF -> OFF
 				else:
@@ -242,15 +243,16 @@ def sparsify_data(data_window: np.ndarray,
 					if train_mode:
 						APPLIED_POLICY = 1
 						e_input = e_trace[k-HISTORY_SIZE:k]
+						# policy inputs are buffers of the last HISTORY_SIZE energy traces and policy outputs 
 						policy_inputs = torch.cat([
-							torch.tensor(e_input, dtype=torch.float32, requires_grad=True, device=device), 
-							policy_outputs[-HISTORY_SIZE:]
+							torch.tensor(e_input, dtype=torch.float32, device=device), 
+							policy_outputs[k-HISTORY_SIZE:k]
 						])
 						policy_out = learned_policy(policy_inputs)
-						# policy_outputs = torch.cat([policy_outputs, policy_out])
-						policy_output_clone = policy_outputs.clone()
-						policy_output_clone[k] = policy_out
-						policy_outputs.data.copy_(policy_output_clone)
+						# Create a new tensor with the updated values
+						updated_policy_outputs = policy_outputs.clone()
+						updated_policy_outputs[k] = policy_out
+						policy_outputs = updated_policy_outputs
 
 					# 0 is delay, 1 is send
 					# if policy_out > 0.5, then we picked 1, otherwise 0
@@ -303,7 +305,7 @@ def sparsify_data(data_window: np.ndarray,
 	num_to_nan_transition_indices = np.where(np.isnan(og_data) & ~np.isnan(rolled_data))[0] # ending idxs
 	
 	# now get the actually sampled data as a list of windows
-	arr = torch.tensor(df[['x_eh','y_eh','z_eh']].values, dtype=torch.float32, device=device, requires_grad=False)
+	arr = torch.tensor(df[['x_eh','y_eh','z_eh']].values, dtype=torch.float32, device=device)
 	packet_data = [                                                                               
 		# this zip operation is important because if we end halfway through a packet it is skipped (number of starts and ends must match)
 		arr[packet_start_idx : packet_end_idx] for packet_start_idx,packet_end_idx in zip(nan_to_num_transition_indices,num_to_nan_transition_indices)
@@ -314,13 +316,17 @@ def sparsify_data(data_window: np.ndarray,
 	# arrival_times = [
 	# 	time_idxs[packet_end_idx-1] for packet_end_idx in num_to_nan_transition_indices
 	# ]
-	time_idxs = torch.arange(len(df['time'].values), dtype=torch.float32, device=device, requires_grad=True)
 
-	actions = torch.where(policy_outputs > 0.5, 1, 0).to(torch.bool)
-	arrival_times = torch.masked_select(time_idxs, torch.roll(actions, packet_size-1))
+	# TODO: time idxs had gradient. not anymore
+	time_idxs = torch.arange(len(df['time'].values), dtype=torch.float32, device=device, requires_grad=True) #TODO: , requires_grad=True)
+
+	actions = torch.where(policy_outputs > 0.5, 1, 0).to(torch.float32)
+	arrival_times = torch.masked_select(time_idxs, torch.roll(actions.to(torch.bool), packet_size-1))
 	# cond = arrival_times > packet_size * (time_idxs[1] - time_idxs[0])
-	cond = arrival_times > FS * packet_size
-	arrival_times = arrival_times.clone().requires_grad_(True)[cond]
+	cond1 = arrival_times > packet_size
+	cond2 = arrival_times <= len(e_trace) - packet_size
+	cond = cond1 & cond2
+	arrival_times = arrival_times[cond]
 		
 	# each item in the list is a packet_size x 3 array, so we just stack into one array			
 	# we make the list into an array of packet_size x 1
@@ -339,7 +345,7 @@ def sparsify_data(data_window: np.ndarray,
 	# plt.show()
 
 	if train_mode:
-		return packets, e_trace, policy_outputs, actions
+		return packets, e_trace, policy_outputs[startup_time:], actions[startup_time:]
 	else:
 		return packets, e_trace
 
@@ -383,7 +389,8 @@ def classify_packets(raw_data, labels, packets, classifier, window_size, device=
 
 	# classify every single sample
 	num_windows = len(labels) - first_sample_idx
-	dense_outputs = torch.tensor([], dtype=torch.float32, device=device, requires_grad=True)
+	# TODO: had requires_grad=True
+	dense_outputs = torch.tensor([], dtype=torch.float32, device=device) #, requires_grad=True)
 	dense_preds = torch.tensor([], dtype=torch.float32, device=device)
 	dense_targets = torch.tensor([], dtype=torch.long, device=device)
 	for win_i in packets[0]:
@@ -391,62 +398,87 @@ def classify_packets(raw_data, labels, packets, classifier, window_size, device=
 		sample_idx = int(win_i)
 		# print(first_sample_idx,win_i,num_windows,sample_idx)
 		win = raw_data[sample_idx-window_size+1:sample_idx+1,:] # window
-		win = torch.tensor(win, dtype=torch.float32, device=device).T.unsqueeze(0)
-		target = torch.tensor([labels[sample_idx]], dtype=torch.long, device=device)
-		dense_targets = torch.cat([dense_targets, target]) # last sample in packet
+		# win = torch.tensor(win, dtype=torch.float32, device=device).T.unsqueeze(0)
+		win = win.T.unsqueeze(0)
+		target = torch.tensor([labels[sample_idx-window_size+1]], dtype=torch.long, device=device)
+		dense_targets = torch.cat((dense_targets, target)) # last sample in packet
 		# make prediction
 		with torch.no_grad(): out = classifier(win)
-		dense_outputs = torch.cat([dense_outputs, torch.sigmoid(out)]) # TODO maybe dimension is wrong?
-		dense_preds = torch.cat([dense_preds, torch.argmax(torch.sigmoid(out)).unsqueeze(0)])
+		dense_outputs = torch.cat((dense_outputs, torch.softmax(out, dim=1)))
+		dense_preds = torch.cat((dense_preds, torch.argmax(torch.softmax(out, dim=1)).unsqueeze(0)))
 	# dense_outputs = torch.stack(dense_outputs)
 		
 	# classify provided packet and extend predictions
-	dense_outputs_policy = []
+	# TODO: had requires_grad=True for dense_outputs_policy
+	dense_outputs_policy = torch.tensor([], dtype=torch.float32, device=device) #, requires_grad=True)
 	dense_preds_policy = torch.tensor([], dtype=torch.float32, device=device)
-	last_prediction_idx = 0
-	last_pred = None
-	last_out = None
-	count = 0
-	for packet_i, (at,win) in enumerate(zip(packets[0],packets[1])):
+	dense_targets_policy = torch.tensor([], dtype=torch.long, device=device)
+
+	# last_prediction_idx = 0
+	# last_pred = None
+	# last_out = None
+	# count = 0
+	for i, (at,win) in enumerate(zip(packets[0],packets[1])):
+
 		# get next window
-		sample_idx = int(at*DELAY_SIZE)
+		# sample_idx = int(at*DELAY_SIZE)
+		sample_idx = int(at)
 		
-		win = win.T.unsqueeze(0)
+		# win = win.T.unsqueeze(0)
 		# win = torch.tensor(win, dtype=torch.float32, device=device).T.unsqueeze(0)
 		
+		# if i > 0:
+			# count += sample_idx-last_prediction_idx
+			# extend output to the whole window
+			# if last_out is not None:
+				# dense_outputs_policy = torch.cat((dense_outputs_policy, dense_outputs[i].repeat(window_size)))
+				# dense_preds_policy = torch.cat((dense_preds_policy, dense_preds[i].repeat(window_size)))
+				# dense_outputs_policy.append(last_out.repeat(sample_idx-last_prediction_idx,1))
+				# dense_preds_policy[last_prediction_idx:sample_idx] = last_pred
+
 		# extend previous prediction
-		if packet_i > 0:
-			count += sample_idx-last_prediction_idx
-			# extend output to duration of prediction
-			if last_out is not None:
-				dense_outputs_policy.append(last_out.repeat(sample_idx-last_prediction_idx,1))
-				dense_preds_policy[last_prediction_idx:sample_idx] = last_pred
+		# targets = labels[sample_idx-window_size+1:sample_idx+1] # ideally, this should be until the next sample. but then the window should be fix...
+		# dense_outputs_policy = torch.cat((dense_outputs_policy, dense_outputs[i].repeat(window_size, 1)))
+		# dense_preds_policy = torch.cat((dense_preds_policy, dense_preds[i].repeat(window_size)))
+		# dense_targets_policy = torch.cat((dense_targets_policy, targets))
+
+		if i < len(packets[0])-1:
+			count = int(packets[0][i+1] - packets[0][i])
+			dense_outputs_policy = torch.cat((dense_outputs_policy, dense_outputs[i].repeat(count, 1)))
+			dense_preds_policy = torch.cat((dense_preds_policy, dense_preds[i].repeat(count)))
+		else:
+			count = int(len(labels) - (packets[0][i]-window_size+1))
+			dense_outputs_policy = torch.cat((dense_outputs_policy, dense_outputs[i].repeat(count, 1)))
+			dense_preds_policy = torch.cat((dense_preds_policy, dense_preds[i].repeat(count)))
+
 
 		# print(f"first_sample_idx:{first_sample_idx}, packet_i:{packet_i}, at_sample:{int(at*DELAY_SIZE)}, sample_idx:{sample_idx}, count: {count}")
 
 		# make prediction
-		with torch.no_grad(): out = classifier(win)
-		last_out = out
-		last_pred = torch.argmax(out)
+		# with torch.no_grad(): out = classifier(win)
+		# last_out = out
+		# last_pred = torch.argmax(out)
 
-		last_prediction_idx = sample_idx
+		# last_prediction_idx = sample_idx
 
 	# extend on the last one
-	if last_out is not None:
-		count += (len(labels)-last_prediction_idx)
-		dense_outputs_policy.append(last_out.repeat(len(labels)-last_prediction_idx,1))
-		dense_preds_policy[last_prediction_idx:] = last_pred
-		dense_outputs_policy = torch.cat(dense_outputs_policy)
+	# if last_out is not None:
+	# 	count += (len(labels)-last_prediction_idx)
+	# 	dense_outputs_policy.append(last_out.repeat(len(labels)-last_prediction_idx,1))
+	# 	dense_preds_policy[last_prediction_idx:] = last_pred
+	# 	dense_outputs_policy = torch.cat(dense_outputs_policy)
 
 	# print(f"first_sample_idx:{first_sample_idx}, packet_i:{packet_i}, at_sample:{int(at*DELAY_SIZE)}, sample_idx:{sample_idx}, count: {count}")
 
 	# print(dense_outputs_policy.shape,dense_preds_policy.shape,labels[first_sample_idx:].shape)
 
-	dense_targets_policy = labels[first_sample_idx:]
+	# dense_targets_policy = labels[first_sample_idx:]
 
 	# TODO: only get the outputs, targets, and predictions at sampling timestep...
 	# from these we can get the loss over the sequence, the accuracy, etc
 	# we return the whole thing because we may want to visualize what predictions would have been for unseen data
+	dense_targets_policy = labels[int(packets[0][0])-window_size+1:]
+	
 	return dense_outputs, dense_preds, dense_targets, dense_outputs_policy, dense_preds_policy, dense_targets_policy
 		
 
