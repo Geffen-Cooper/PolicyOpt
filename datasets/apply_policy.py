@@ -345,7 +345,7 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 
 
 # given the output of a policy, get the classification results
-def classify_packets(raw_data, labels, packets, classifier, window_size):
+def classify_packets(raw_data, labels, packets, classifier, window_size, mean, std):
 	
 	first_sample_idx = int(packets[0][0]*25)
 
@@ -361,6 +361,7 @@ def classify_packets(raw_data, labels, packets, classifier, window_size):
 		dense_targets[win_i] = labels[sample_idx-window_size+1] # last sample in packet
 		# make prediction
 		with torch.no_grad():
+			win = ((win-mean.unsqueeze(0).unsqueeze(2))/(std.unsqueeze(0).unsqueeze(2) + 1e-5)).float()
 			out = classifier(win)
 		dense_outputs.append(out)
 		dense_preds[win_i] = torch.argmax(out)
@@ -384,12 +385,13 @@ def classify_packets(raw_data, labels, packets, classifier, window_size):
 			count += sample_idx-last_prediction_idx
 			# extend output to duration of prediction
 			dense_outputs_policy.append(last_out.repeat(sample_idx-last_prediction_idx,1))
-			dense_preds_policy[last_prediction_idx:sample_idx] = last_pred
+			dense_preds_policy[last_prediction_idx-first_sample_idx:sample_idx-first_sample_idx] = last_pred
 
 		# print(f"first_sample_idx:{first_sample_idx}, packet_i:{packet_i}, at_sample:{int(at*25)}, sample_idx:{sample_idx}, count: {count}")
 
 		# make prediction
 		with torch.no_grad():
+			win = ((win-mean.unsqueeze(0).unsqueeze(2))/(std.unsqueeze(0).unsqueeze(2) + 1e-5)).float()
 			out = classifier(win)
 		last_out = out
 		last_pred = torch.argmax(out)
@@ -399,7 +401,7 @@ def classify_packets(raw_data, labels, packets, classifier, window_size):
 	# extend on the last one
 	count += (len(labels)-last_prediction_idx)
 	dense_outputs_policy.append(last_out.repeat(len(labels)-last_prediction_idx,1))
-	dense_preds_policy[last_prediction_idx:] = last_pred
+	dense_preds_policy[last_prediction_idx-first_sample_idx:] = last_pred
 
 	# print(f"first_sample_idx:{first_sample_idx}, packet_i:{packet_i}, at_sample:{int(at*25)}, sample_idx:{sample_idx}, count: {count}")
 

@@ -39,6 +39,10 @@ if __name__ == '__main__':
 	test_data = np.load(f"{root_dir}/testing_data.npy")
 	test_labels = np.load(f"{root_dir}/testing_labels.npy")
 
+	# preprocess
+	mean = torch.tensor(np.mean(train_data,axis=0))
+	std = torch.tensor(np.std(train_data,axis=0))
+
 	# load pretrained classifier
 	model = SimpleNet(3,10)
 	ckpt_path = os.path.join(PROJECT_ROOT,f"saved_data/checkpoints/seed{123}.pth")
@@ -89,9 +93,9 @@ if __name__ == '__main__':
 				print(opp_packets[0],learned_packets[0])
 				continue
 
-			dense_outputs, dense_preds, dense_targets, dense_outputs_opp, dense_preds_opp, dense_targets_policy = classify_packets(segment_data,segment_labels,opp_packets,model,PACKET_SIZE)
+			dense_outputs, dense_preds, dense_targets, dense_outputs_opp, dense_preds_opp, dense_targets_policy = classify_packets(segment_data,segment_labels,opp_packets,model,PACKET_SIZE, mean, std)
 			# exit()
-			_, _, _, dense_outputs_learned, dense_preds_learned, dense_targets_policy = classify_packets(segment_data,segment_labels,learned_packets,model,PACKET_SIZE)
+			_, _, _, dense_outputs_learned, dense_preds_learned, dense_targets_policy = classify_packets(segment_data,segment_labels,learned_packets,model,PACKET_SIZE, mean, std)
 
 			# fake_labels = (torch.cat(policy_outputs) > 0.5).float()
 			try:

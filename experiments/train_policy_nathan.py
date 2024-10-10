@@ -26,7 +26,8 @@ def sample_segment(duration, data, labels):
 	
 
 if __name__ == '__main__':
-	device = "cuda" if torch.cuda.is_available() else "cpu"
+	# device = "cuda" if torch.cuda.is_available() else "cpu"
+	device = "cpu"
 	# start tensorboard session
 	writer = SummaryWriter(os.path.join(PROJECT_ROOT,"saved_data/runs","policy")+"_"+str(time.time()))
 
