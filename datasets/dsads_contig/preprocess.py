@@ -8,9 +8,13 @@ from pathlib import Path
 
 # ============ Argument parser ============
 parser = argparse.ArgumentParser(description='Preprocess DSADS Dataset')
-parser.add_argument('--sampling_rate', type=int, default=25, help='sampling rate to use (will resample if != 25)')
 parser.add_argument('--root_dir', type=str, default="~/Projects/data/dsads", help='path to dsads dataset')
-parser.add_argument('--val_type', type=str, default="AD", help='validation type (AD or LOOCV)')
+parser.add_argument('--activity_list', nargs='+', type=int, help='List of integers')
+parser.add_argument('--seed', type=int, default=0, help='random seed')
+parser.add_argument('--min_duration', type=int, default=10, help='minimum activity duration')
+parser.add_argument('--max_duration', type=int, default=30, help='maximum activity duration')
+parser.add_argument('--body_part', type=str, default="right_leg", help='which body part to use')
+
 args = parser.parse_args()
 
 
@@ -21,7 +25,8 @@ body_parts = ['torso',
               'right_leg',
               'left_leg']
 
-active_body_parts = ['right_leg']
+# active_body_parts = ['right_leg']
+active_body_parts = [args.body_part]
 
 NUM_USERS = 8
 
@@ -89,63 +94,24 @@ label_map = {
              }
 
 active_label_map = {
-             0:'ascending stairs',
-             1:'descending stairs',
-             2:'walking in parking lot',
-             3:'walking on inclined treadmill',
-             4:'running on treadmill,',
-             5:'exercising on stepper',
-             6:'exercising on cross trainer',
-             7:'cycling on exercise bike vertical',
-             8:'jumping',
-             9:'playing basketball'
-             }
+    i:label_map[j] for i,j in enumerate(args.activity_list)
+}
+# active_label_map = {
+#              0:'ascending stairs',
+#              1:'descending stairs',
+#              2:'walking in parking lot',
+#              3:'walking on inclined treadmill',
+#              4:'running on treadmill,',
+#              5:'exercising on stepper',
+#              6:'exercising on cross trainer',
+#              7:'cycling on exercise bike vertical',
+#              8:'jumping',
+#              9:'playing basketball'
+#              }
 
 # ============ load remaining args ============
-new_sampling_rate = args.sampling_rate
+new_sampling_rate = og_sampling_rate
 root_dir = os.path.expanduser(args.root_dir)
-
-
-
-# ============ helper functions ============
-
-def find_closest_index(original_array: np.ndarray , new_array: np.ndarray) -> np.ndarray:
-    """ When resampling data to a lower sampling rate, the sample level labels also need to be adjusted.
-        During resampling, we will get fewer samples so the corresponding time stamps get adjusted.
-        To adjust the sample level labels, this function gets the index at the closest time stamp
-        in the original array.
-
-    Parameters
-    ----------
-
-    original_array: np.ndarray
-        an array of time stamps for each sample in the orignal data
-
-    new_array: np.ndarray
-        an array of time stamps for each sample in the new data (will be shorter if lower sampling rate)
-
-
-    Returns
-    -------
-
-    closest_indices: np.ndarray
-        the indices in the orignal label array to access to set the labels for the new sampling rate
-    """
-
-    # find indices of orignal where samples of new array should be inserted to preserve order
-    indices = np.searchsorted(original_array, new_array)
-    indices = np.clip(indices, 1, len(original_array)-1)
-    
-    # consider indices 0->n-1 and 1->n
-    left_values = original_array[indices - 1]
-    right_values = original_array[indices]
-    
-    # get index with closest timestamp (new array timestamps fall between old array timestamps so need to choose closest)
-    closest_indices = np.where(np.abs(new_array - left_values) < np.abs(new_array - right_values),
-                               indices - 1,
-                               indices)
-    
-    return closest_indices
 
 
 if __name__ == '__main__':
@@ -173,6 +139,7 @@ if __name__ == '__main__':
     test_label_list = []
 
     activities = active_label_map.keys()
+    # activities = args.activity_list
     train_pool_len = int(num_samples_per_activity*len(users)*train_frac)
     val_pool_len = int(num_samples_per_activity*len(users)*val_frac)
     test_pool_len = int(num_samples_per_activity*len(users)*test_frac)
@@ -194,10 +161,11 @@ if __name__ == '__main__':
     for user_i, user_folder in enumerate(participant_folders):
         for activity_i, activity_folder in enumerate(activity_folders):
             # print(f"user: {user_i}, activity: {label_map[activity_i]}")
-            if label_map[activity_i] in list(active_label_map.values()):
-                active_activity_i = list(active_label_map.values()).index(label_map[activity_i])
+            if activity_i in args.activity_list:
+                active_activity_i = args.activity_list.index(activity_i)
             else:
                 continue
+            
             print(f"user: {user_i}, active_activity_i: {active_activity_i}, activity: {active_label_map[active_activity_i]}, pool_idx: {user_i*train_seg_len}, active_channels: {active_channels}")
             # create the data array which contains samples across all segment files
             data_array = np.zeros((num_samples_per_activity,len(active_channels)))
@@ -222,9 +190,9 @@ if __name__ == '__main__':
     
     # create the random activity sequences
     # we sample an activity duration from [min,max]
-    min_duration = 10
-    max_duration = 30
-    duration = np.arange(min_duration,max_duration+1)
+    args.min_duration = 10
+    args.max_duration = 30
+    duration = np.arange(args.min_duration,args.max_duration+1)
 
     data_pools = [training_data_pool,val_data_pool,testing_data_pool]
     label_pools = [training_label_pool,val_label_pool,testing_label_pool]

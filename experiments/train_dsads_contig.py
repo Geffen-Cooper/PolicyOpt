@@ -36,7 +36,7 @@ if __name__ == '__main__':
 		train_loader,val_loader,test_loader = load_dsads_person_dataset(BATCH_SIZE)
 
 		# init models
-		model = SimpleNet(3,10)
+		model = SimpleNet(3,19)
 		opt = torch.optim.SGD(model.parameters(),lr=LR,momentum=MOMENTUM,weight_decay=WD)
 
 		# load the model if already trained

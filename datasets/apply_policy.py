@@ -76,6 +76,7 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 	# get energy as function of samples
 	t_out, p_out = eh.power(df)
 	e_out = eh.energy(t_out, p_out)
+	np.save("e_out.npy",e_out)
 	valid, thresh = eh.generate_valid_mask(e_out, packet_size)
 
 	# assume max energy we can store is ~ 3*thresh needed to sample/TX
@@ -118,7 +119,7 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 
 	# iterate over energy values
 	while k < len(e_trace):
-		
+		# print(k)
 		# update energy state
 		e_trace[k] = e_trace[k-1] + e_harvest[k] - LEAKAGE_PER_SAMPLE
 		# print(k, e_trace[k],STATE,thresh,e_harvest[k],LEAKAGE_PER_SAMPLE)
