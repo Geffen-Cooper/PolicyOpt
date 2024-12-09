@@ -2,3 +2,6 @@ env/
 *.egg-info
 __pycache__
 saved_data/runs
+*.txt
+*.zip
+.ruff_cache

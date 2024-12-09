@@ -1,5 +1,5 @@
+import os
 import torch
-import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
@@ -7,281 +7,290 @@ from tqdm import tqdm
 
 from utils.setup_funcs import *
 from datasets.dsads_contig.dsads import *
+from datasets.energy_harvest import EnergyHarvester
 from train import *
-from models import *
-from datasets.apply_policy_nathan import *
+from datasets.apply_policy_nathan import Device
+from sklearn.metrics import f1_score
 
+from experiments.dataloader import load_data
 
-def sample_segment(rng, duration, data, labels, device="auto"):
-	rand_start = int(rng.random()*len(labels))
-	# make sure segment doesn't exceed end of data
-	if rand_start + duration >= len(labels):
-		rand_start = len(labels) - duration
+class Trainer():
+	def __init__(self, exp_name, policy_mode, sensor_cfg, train_cfg, device, load_path, lr, seed):
+		self.policy_mode = policy_mode
 
-	data_seg = data[rand_start:rand_start+duration,:]
-	label_seg = labels[rand_start:rand_start+duration]
+		self.load_path = load_path
+		self.seed = seed
+		self.device = device
 
-	return data_seg, label_seg
+		self.train_cfg = train_cfg
+
+		self._setup_paths(load_path, exp_name)
+		self._load_data()
+		self._load_classifier()
+		self._load_sensor(**sensor_cfg)
+		self._build_optimizer(lr)
+
+		self.memory = ReplayMemory(self.train_cfg['replay_buffer_capacity'])
+
+		self.fig, self.axs = plt.subplots(1,1)
+
+	def _setup_paths(self, load_path, exp_name):
+		self.root_dir = os.path.dirname(os.path.dirname(__file__))
+		if load_path is None:
+			now = datetime.datetime.now()
+			start_time = now.strftime("%Y-%m-%d_%H-%M-%S")
+			self.log_dir = os.path.join(self.root_dir,"saved_data/runs",f"{exp_name}")+"_"+start_time
+		else:
+			self.log_dir = load_path
+		
+		# path where model parameters will be saved
+		self.sensor_path = os.path.join(self.log_dir, "model_params.pt")
+		self.data_dir = os.path.join(self.root_dir,"datasets/dsads_contig/merged_preprocess")
+
+		self.plot_dir = os.path.join(self.log_dir, "plots")
+		if not os.path.isdir(self.plot_dir): os.makedirs(self.plot_dir)
 	
+	def _load_data(self):
+		self.data = load_data(self.data_dir, self.device)
+	
+	def _build_optimizer(self, lr):
+		self.opt = torch.optim.Adam(self.sensor.parameters(),lr=lr)
 
-if __name__ == '__main__':
-	device = "cuda" if torch.cuda.is_available() else "cpu"
-	device = "cpu"
-	# start tensorboard session
-	now = datetime.datetime.now()
-	start_time = now.strftime("%Y-%m-%d_%H-%M-%S")
-	log_dir = os.path.join(PROJECT_ROOT,"saved_data/runs","policy")+"_"+start_time
-	writer = SummaryWriter(log_dir)
+	def _load_classifier(self):
+		self.classifier = SimpleNet(3,10).to(self.device)
+		ckpt_path = os.path.join(self.root_dir,f"saved_data/checkpoints/seed{123}.pth")
+		self.classifier.load_state_dict(torch.load(ckpt_path)['model_state_dict'])
 
-	# path where model parameters will be saved
-	policy_path = os.path.join(log_dir, "model_params.pt")
+	def _load_sensor(self, packet_size, leakage, init_overhead, duration_range, history_size, sample_frequency, sensor_net_cfg):
+		self.eh = EnergyHarvester()
+		self.sensor = Device(
+			packet_size=packet_size,
+			leakage=leakage,
+			init_overhead=init_overhead,
+			eh=self.eh,
+			policy_mode=self.policy_mode,
+			classifier=self.classifier,
+			device=self.device, 
+			duration_range=duration_range,
+			history_size=history_size, 
+			sample_frequency=sample_frequency,
+			sensor_net_cfg=sensor_net_cfg,
+			seed=self.seed,
+		)		
 
-	# load data
-	root_dir = os.path.join(PROJECT_ROOT,"datasets/dsads_contig/merged_preprocess")
-	train_data = np.load(f"{root_dir}/training_data.npy")
-	train_labels = np.load(f"{root_dir}/training_labels.npy")
-	train_data = torch.tensor(train_data, dtype=torch.float32, device=device)
-	train_labels = torch.tensor(train_labels, dtype=torch.long, device=device)
+	def calculate_loss(self, y_hat, y) -> float:
+		return sum([len(torch.where(y_traj == y_hat_traj)[0]) for (y_hat_traj,y_traj) in zip(y_hat,y)])
 
-	val_data = np.load(f"{root_dir}/val_data.npy")
-	val_labels = np.load(f"{root_dir}/val_labels.npy")
-	val_data = torch.tensor(val_data,  dtype=torch.float32, device=device)
-	val_labels = torch.tensor(val_labels, dtype=torch.long, device=device)
-
-	test_data = np.load(f"{root_dir}/testing_data.npy")
-	test_labels = np.load(f"{root_dir}/testing_labels.npy")
-	test_data = torch.tensor(test_data[:500], dtype=torch.float32, device=device)
-	test_labels = torch.tensor(test_labels[:500], dtype=torch.float32, device=device)
-
-	# load pretrained classifier
-	model = SimpleNet(3,10).to(device)
-	ckpt_path = os.path.join(PROJECT_ROOT,f"saved_data/checkpoints/seed{123}.pth")
-	model.load_state_dict(torch.load(ckpt_path)['model_state_dict'])
-
-	# hyperparameters
-	BUFFER_SIZE = 50 
-	IN_DIM = 2*BUFFER_SIZE
-	HIDDEN_DIM = 128
-	BATCH_SIZE = 32
-	LR = 1e-3
-	MOMENTUM = 0.9
-	WD = 1e-4
-	ITERATIONS = 5000
-	VAL_EVERY_ITERATIONS = 5
-
-	SEED = 42
-	DURATION = 30 # length of segments in seconds
-	FS = 25 # sampling frequency
-	PACKET_SIZE = 8
-	LEAKAGE = 6e-6
-	INIT_OVERHEAD = 150e-6
-
-	assert(PACKET_SIZE <= BUFFER_SIZE), f"Packet size must be smaller than buffer size. Got packet size {PACKET_SIZE} and buffer size {BUFFER_SIZE}"
-
-	rng = np.random.default_rng(seed=SEED)
-
-	eh = EnergyHarvester()
-
-	policy = EnergyPolicy(IN_DIM,HIDDEN_DIM).to(device)
-	opt = torch.optim.SGD(policy.parameters(),lr=LR,momentum=MOMENTUM,weight_decay=WD)
-	loss_fn_har = torch.nn.CrossEntropyLoss()
-	loss_fn_policy = torch.nn.BCELoss()
-
-	fig, axs = plt.subplots(1,1)
-	plot_dir = os.path.join(log_dir, "plots")
-	os.makedirs(plot_dir)
-
-	best_val_f1 = 0.0
-	init_params = policy.named_parameters()
-
-	for iteration in tqdm(range(ITERATIONS)):
-		Loss = 0
-		classification_loss = 0
-
-		for batch_idx in range(BATCH_SIZE):
-			train_segment_data, train_segment_labels = sample_segment(rng, DURATION*FS, train_data, train_labels, device)
-
-			# add time axis
-			train_t_axis = np.arange(len(train_segment_labels))/FS
-			train_t_axis = np.expand_dims(train_t_axis,axis=0).T
-
-			# add the time axis to the data
-			train_full_data_window = np.concatenate([train_t_axis,train_segment_data],axis=1)
-			
-			learned_packets, learned_e_trace, policy_outputs, actions = sparsify_data(
-				train_full_data_window,
-				PACKET_SIZE,LEAKAGE,INIT_OVERHEAD,eh,'learned_policy',policy,train_mode=True, 
-				device=device, history_size=BUFFER_SIZE, sample_frequency=FS)
-			
-			if len(learned_packets[0]) == 0:
-				# Policy did not sample at all
-				continue
-
-			dense_outputs, dense_preds, dense_targets, dense_outputs_learned, dense_preds_learned, dense_targets_policy = classify_packets(train_segment_data,train_segment_labels,learned_packets,model,PACKET_SIZE, device=device)
-
-			if dense_targets_policy.dtype != torch.long:
-				print(f"dense_targets_policy dtype: {dense_targets_policy.dtype}")
-
-			# classification loss
-			policy_outputs.retain_grad()
-			learned_classification_loss = loss_fn_har(dense_outputs_learned, dense_targets_policy.long())
-			policy_loss = loss_fn_policy(policy_outputs, actions)
-
-			# policy_loss.register_hook(lambda grad: print('Policy Gradient:', grad))
-
-			Loss += 1/BATCH_SIZE * learned_classification_loss * policy_loss
-			classification_loss += 1/BATCH_SIZE * learned_classification_loss
+	def optimize_model(self):
+		if len(self.memory < self.train_cfg['batch_size']):
+			return
 		
-		if Loss == 0.0:
+		transitions = self.memory.sample(self.train_cfg['batch_size'])
+
+		batch = Transition(*zip(*transitions))
+		state_batch = torch.cat(batch.state)
+		last_energy_batch = torch.cat(batch.last_energy)
+		action_batch = torch.cat(batch.action)
+		reward_batch = torch.cat(batch.reward)
+
+		enough_energy_mask = torch.where(last_energy_batch >= self.sensor.threshold)
+		non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+                                          batch.next_state)), device=device, dtype=torch.bool)
+		non_final_next_states = torch.cat([s for s in batch.next_state
+													if s is not None])
+		# non final next states with enough energy
+		valid_states = torch.cat([s for s,e in zip(batch.state, batch.last_energy) if e > self.sensor.threshold and s is not None])
+		
+		state_action_values = self.sensor.Q_network(valid_states).gather(1, -1)
+
+		next_state_values = torch.zeros(self.train_cfg['batch_size'], device=device)
+		with torch.no_grad():
+			# TODO: add enough_energy_mask - only feedback with decisions made when enough_energy_mask is valid
+			next_state_values[non_final_mask] = self.sensor.Q_network(non_final_next_states).max(1).values
+		# Compute the expected Q values
+		expected_state_action_values = (next_state_values * self.train_cfg['gamma']) + reward_batch
+
+		# Compute Huber loss
+		criterion = nn.SmoothL1Loss()
+		loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+
+		# Optimize the model
+		self.opt.zero_grad()
+		loss.backward()
+		# In-place gradient clipping
+		torch.nn.utils.clip_grad_value_(self.sensor.Q_network.parameters(), 100)
+		self.opt.step()
+
+	def train_one_epoch(self, iteration, writer):
+		self.sensor.train()
+		loss = 0.0
+		train_data, train_labels = self.data['train']
+
+		for batch_idx in range(self.train_cfg['batch_size']):
+			self.save_transition() # TODO	
+			loss += self.optimize_model()		
+			# classifier_preds, classifier_targets = self.sensor.forward(train_data, train_labels, training=True)
+			
+			# if classifier_preds is None:
+			# 	print(f"No packets sent on iteration {iteration} batch index {batch_idx}")
+			# 	continue
+			# loss += self.calculate_loss(classifier_preds, classifier_targets)
+
+		if loss == 0.0:
 			print("Iteration {} did not sample at all".format(iteration))
-			continue
+			return
 
-		opt.zero_grad()
-		Loss.backward()
-
-		# For debugging gradients
-		# for name, param in policy.named_parameters():
-		# 	if name == "fc2.bias":
-		# 		print(name, param)
-
-		opt.step()
-
-		train_f1 = f1_score(
-			dense_targets.detach().cpu().numpy(), dense_preds.detach().cpu().numpy(), average='macro'
-			)
+		# train_f1 = f1_score(
+		# 	classifier_targets.detach().cpu().numpy(), classifier_preds.detach().cpu().numpy(), average='macro'
+		# 	)
 		
-		print("Iteration: {}, batch_loss: {:.3f}, classification loss: {:.3f}, train f1 score: {:.3f}".format(iteration, Loss, classification_loss, train_f1))
+		print("Iteration: {}, loss: {:.3f}".format(iteration, loss))
 
-		writer.add_scalar("train_metric/batch_loss", Loss, iteration)
-		writer.add_scalar("train_metric/classification_loss", classification_loss, iteration)
-		writer.add_scalar("train_metric/f1", train_f1, iteration)
+		writer.add_scalar("train_metric/batch_loss", loss, iteration)
+		# writer.add_scalar("train_metric/f1", train_f1, iteration)
+
+		return loss
+
+	def train(self):
+		writer = SummaryWriter(self.log_dir)
+		best_val_f1 = 0.0
+
+		for iteration in tqdm(range(self.train_cfg['epochs'])):
+			self.train_one_epoch(iteration, writer)
+			# validation
+			if iteration != 0 and iteration % self.train_cfg['val_every_epochs'] == 0:
+				val_loss = self.validate(iteration, writer, *self.data['val'])
+				if val_loss['f1'] > best_val_f1:
+					best_val_f1 = val_loss['f1']
+					torch.save({
+						'epoch': iteration + 1,
+						'model_state_dict': self.sensor.state_dict(),
+						'val_f1': val_loss['f1'],
+						'val_classification_loss': val_loss['loss'],
+					}, self.sensor_path)
 		
-		# validation
-		if iteration != 0 and iteration % VAL_EVERY_ITERATIONS == 0:
-			val_policy_loss = 0.0
-			val_opp_loss = 0.0
+		self.validate(self, iteration+1, writer, *self.data['test'])
+	
+	def validate(self, iteration, writer, data, labels, val_iterations):
+		self.sensor.eval()
+		val_loss = 0.0
+		val_policy_f1 = 0.0
+		val_opp_f1 = 0.0
 
-			# make sure the policy parameters are changing...
-			# for name, param in policy.named_parameters():
-			# 	print(name, param)
-			
-			# for name, param in init_params:
-			# 	print('init', name, param)
-
+		for _ in range(val_iterations):
 			with torch.no_grad():
-				val_segment_data, val_segment_labels = sample_segment(rng, DURATION*FS, val_data, val_labels, device)
+				val_segment_data, val_segment_labels = self.sensor._sample_segment(data, labels)
 
-				val_t_axis = np.arange(len(val_segment_labels))/FS
+				val_t_axis = np.arange(len(val_segment_labels))/self.sensor.FS
 				val_t_axis = np.expand_dims(val_t_axis,axis=0).T
-				val_full_data_window = np.concatenate([val_t_axis,val_segment_data],axis=1)
+				val_t_axis = torch.tensor(val_t_axis, device=device)
+				val_full_data_window = torch.cat((val_t_axis, val_segment_data), dim=1)
 
-				learned_packets, learned_e_trace, policy_outputs, actions = sparsify_data(
-					val_full_data_window,
-					PACKET_SIZE,LEAKAGE,INIT_OVERHEAD,eh,'learned_policy',policy,train_mode=True, 
-					device=device, history_size=BUFFER_SIZE, sample_frequency=FS)
-				
-				opp_packets, opp_e_trace, opp_outputs, opp_actions = sparsify_data(
-					val_full_data_window,
-					PACKET_SIZE,LEAKAGE,INIT_OVERHEAD,eh,'opportunistic',policy,train_mode=True, 
-					device=device, history_size=BUFFER_SIZE, sample_frequency=FS)
+				learned_packets, learned_e_trace, actions = self.sensor.forward_sensor(val_full_data_window)
 				
 				if len(learned_packets[0]) == 0:
 					# Policy did not sample at all
 					print(f"Iteration {iteration}: Policy did not sample at all during validation!")
 					continue
 
-				_, _, _, dense_outputs_learned, dense_preds_learned, dense_targets_policy = classify_packets(val_segment_data,val_segment_labels,learned_packets,model,PACKET_SIZE,device=device)
+				opp_packets, opp_e_trace, opp_actions = self.sensor.forward_sensor(val_full_data_window, policy_mode="opportunistic")
+				
 
-				_, _, _, dense_outputs_opp, dense_preds_opp, dense_targets_opp = classify_packets(val_segment_data,val_segment_labels,opp_packets,model,PACKET_SIZE,device=device)
+				outputs_learned, preds_learned, targets_learned = self.sensor.forward_classifier(val_segment_data,val_segment_labels,learned_packets)
 
-				learned_classification_loss = loss_fn_har(dense_outputs_learned, dense_targets_policy)
-				opportunistic_classification_loss = loss_fn_har(dense_outputs_opp, dense_targets_opp)
+				outputs_opp, preds_opp, targets_opp = self.sensor.forward_classifier(val_segment_data,val_segment_labels,opp_packets)
 
-				val_policy_loss = learned_classification_loss
-				val_opp_loss = opportunistic_classification_loss
-				val_policy_f1 = f1_score(
-					dense_targets_policy.detach().cpu().numpy(), dense_preds_learned.detach().cpu().numpy(), average='macro'
+				val_loss += self.calculate_loss(targets_learned, preds_learned)
+
+				val_policy_f1 += f1_score(
+					targets_learned.detach().cpu().numpy(), preds_learned.detach().cpu().numpy(), average='macro'
 				)
-				val_opp_f1 = f1_score(
-					dense_targets_opp.detach().cpu().numpy(), dense_preds_opp.detach().cpu().numpy(), average='macro'
+				val_opp_f1 += f1_score(
+					targets_opp.detach().cpu().numpy(), preds_opp.detach().cpu().numpy(), average='macro'
 				)
+		
+		val_loss /= val_iterations
+		val_policy_f1 /= val_iterations
+		val_opp_f1 /= val_iterations
 
-			print("Iteration: {}, val_policy_f1_score: {:.3f}, val_opp_f1_score {:.3f}".format(iteration, val_policy_f1, val_opp_f1))
+		print("Iteration: {}, val_policy_f1_score: {:.3f}, val_opp_f1_score {:.3f}".format(iteration, val_policy_f1, val_opp_f1))
 
-			writer.add_scalar("val_metric/policy_classification_loss", val_policy_loss, iteration)
-			writer.add_scalar("val_metric/opp_classification_loss", val_opp_loss, iteration)
-			writer.add_scalar("val_metric/classification_difference", val_opp_loss - val_policy_loss, iteration)
-			writer.add_scalar("val_metric/policy_f1", val_policy_f1, iteration)
-			writer.add_scalar("val_metric/opp_f1", val_opp_f1, iteration)
-			
-			policy_sample_times = (learned_packets[0]).long() - PACKET_SIZE + 1
-			opp_sample_times = (opp_packets[0]).long() - PACKET_SIZE + 1
-			axs.axhline(y=5.12e-5, linestyle='--', color='green') # Opportunistic policy will send at this energy
-			axs.plot(val_t_axis, learned_e_trace)
-			axs.plot(val_t_axis, opp_e_trace, linestyle='--')
-			axs.scatter(val_t_axis[policy_sample_times], learned_e_trace[policy_sample_times], label='policy')
-			axs.scatter(val_t_axis[opp_sample_times], opp_e_trace[opp_sample_times], marker='D', label='opp')
-			axs.set_xlabel("Time")
-			axs.set_ylabel("Energy")
-			axs.legend()
-			plt.tight_layout()
-			plt.savefig(f"{plot_dir}/plot_{iteration}.png")
-			axs.cla()
+		writer.add_scalar("val_metric/f1_difference", val_policy_f1 - val_opp_f1, iteration)
+		writer.add_scalar("val_metric/policy_f1", val_policy_f1, iteration)
+		writer.add_scalar("val_metric/opp_f1", val_opp_f1, iteration)
+		writer.add_scalar("val_metric/loss", val_loss, iteration)
+		
+		policy_sample_times = (learned_packets[0]).long() - self.sensor.packet_size + 1
+		opp_sample_times = (opp_packets[0]).long() - self.sensor.packet_size + 1
+		self.axs.axhline(y=5.12e-5, linestyle='--', color='green') # Opportunistic policy will send at this energy
+		self.axs.plot(val_t_axis, learned_e_trace)
+		self.axs.plot(val_t_axis, opp_e_trace, linestyle='--')
+		self.axs.scatter(val_t_axis[policy_sample_times], learned_e_trace[policy_sample_times], label='policy')
+		self.axs.scatter(val_t_axis[opp_sample_times], opp_e_trace[opp_sample_times], marker='D', label='opp')
+		self.axs.set_xlabel("Time")
+		self.axs.set_ylabel("Energy")
+		self.axs.legend()
+		plt.tight_layout()
+		plt.savefig(f"{self.plot_dir}/plot_{iteration}.png")
+		self.axs.cla()
 
-			if val_policy_f1 > best_val_f1:
-				best_val_f1 = val_policy_f1
-				torch.save({
-					'epoch': iteration + 1,
-					'model_state_dict': policy.state_dict(),
-					'val_f1': val_policy_f1,
-					'val_classification_loss': val_policy_loss,
-				}, policy_path)
-	
-	# load best trained model
-	policy.load_state_dict(torch.load(policy_path)['model_state_dict'])
-	
-	# test
-	test_t_axis = np.arange(len(test_labels))/FS
-	test_t_axis = np.expand_dims(test_t_axis,axis=0).T
-	test_full_data_window = np.concatenate([test_t_axis,test_data],axis=1)
+		val_loss = {
+			'f1': val_policy_f1,
+			'loss': val_loss,
+		}
 
-	learned_packets, learned_e_trace, policy_outputs, actions = sparsify_data(
-		test_full_data_window,
-		PACKET_SIZE,LEAKAGE,INIT_OVERHEAD,eh,'learned_policy',policy,train_mode=True, 
-		device=device, history_size=BUFFER_SIZE, sample_frequency=FS)
-	
-	opp_packets, opp_e_trace, opp_outputs, opp_actions = sparsify_data(
-		test_full_data_window, 
-		PACKET_SIZE,LEAKAGE,INIT_OVERHEAD,eh,'opportunistic',policy,train_mode=True, 
-		device=device, history_size=BUFFER_SIZE, sample_frequency=FS)
-	
-	if len(learned_packets[0]) == 0:
-		# Policy did not sample at all
-		print("Policy did not sample at all...")
+		return val_loss
 
-	_, _, _, dense_outputs_learned, _, dense_targets_policy = classify_packets(test_data,test_labels,learned_packets,model,PACKET_SIZE, device=device)
 
-	_, _, _, dense_outputs_opp, _, dense_targets_opp = classify_packets(test_data,test_labels,learned_packets,model,PACKET_SIZE, device=device)
+	def load_policy(self):
+		self.sensor = self.sensor.load_state_dict(torch.load(self.sensor_path)['model_state_dict'])
 
-	test_policy_loss = loss_fn_har(dense_outputs_learned, dense_targets_policy)
-	test_opp_loss = loss_fn_har(dense_outputs_opp, dense_targets_opp)
-	print("Test learned policy loss {:.3f}, test opportunistic policy loss {:.3f}".format(test_policy_loss, test_opp_loss))
+if __name__ == '__main__':
+	import argparse
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--load_path", type=str, default=None)
+	args = parser.parse_args()
 
-	test_f1 = f1_score(
-		dense_targets.detach().cpu().numpy(), dense_preds.detach().cpu().numpy(), average='macro'
-	)
+	exp_name = "TestPolicy"
+	epochs = 5_000
+	load_path = args.load_path
+	seed = 0
+	policy_model = "MLP"
+	device = "cpu"
+	lr = 1e-3
+	policy_mode = "learned_policy"
 
-	policy_sample_times = (learned_packets[0]).long() - PACKET_SIZE + 1
-	opp_sample_times = (opp_packets[0]).long() - PACKET_SIZE + 1	
-	axs.axhline(y=5.12e-5, linestyle='--', color='green') # Opportunistic policy will send at this energy
-	axs.plot(test_t_axis, learned_e_trace)
-	axs.plot(test_t_axis, opp_e_trace, linestyle='--')
-	axs.scatter(test_t_axis[policy_sample_times], learned_e_trace[policy_sample_times], label='policy')
-	axs.scatter(test_t_axis[opp_sample_times], opp_e_trace[opp_sample_times], marker='D', label='opp')
-	axs.legend()
-	axs.set_xlabel("Time")
-	axs.set_ylabel("Energy")
-	plt.tight_layout()
-	plt.savefig(f"{log_dir}/test_plot.png")
-	plt.clf()
-	
+	sensor_net_cfg = {
+		'in_dim': 32, # buffer=16, 2*buffer
+		'hidden_dim': 32
+	}
+
+	# sensor_cfg = (packet_size, leakage, init_overhead, duration_range, history_size, sample_frequency)
+	sensor_cfg = {
+		'packet_size': 8,
+		'leakage': 6e-6,
+		'init_overhead': 150e-6,
+		'duration_range': (10,100),
+		'history_size': 16,
+		'sample_frequency': 25,
+		'sensor_net_cfg': sensor_net_cfg,
+	}
+
+	train_cfg = {
+		'batch_size': 32,
+		'epochs': 5_000,
+		'val_duration': 100,
+		'val_every_epochs': 50,	
+		'gamma': 0.99,
+		'replay_buffer_capacity': 10_000,	
+	}
+
+	trainer = Trainer(exp_name, policy_mode, sensor_cfg, train_cfg, device, load_path, lr, seed)
+	trainer.train()
+
+
+	# assert (device == "cuda" or device == "cpu")
+	# assert (policy_model == "MLP" or policy_model == "ResNet")
+
+	# assert(PACKET_SIZE <= BUFFER_SIZE), f"Packet size must be smaller than buffer size. Got packet size {PACKET_SIZE} and buffer size {BUFFER_SIZE}"
+	# assert(PACKET_SIZE < DURATION_RANGE[0] * FS), f"The minimum duration range must be longer than the packet size. Got packet size {PACKET_SIZE} and min duration {DURATION_RANGE[0]}"

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from collections import deque, namedtuple
 from ptflops import get_model_complexity_info
 
 
@@ -31,7 +32,7 @@ class SimpleNet(nn.Module):
     
 
     def forward(self, x):
-        # print(x.shape)
+        print(x.shape)
         # (3 x 8) --> (8 x 8)
         # print(x.shape)
         x = F.relu(self.conv1(x))
@@ -92,3 +93,34 @@ class DSADSNet(nn.Module):
         x = self.fc2(x)
 
         return x
+    
+class DiscreteQNetwork(nn.Module):
+    def __init__(self, N, in_dim, hidden_dim):
+        super().__init__()
+        self.model = nn.Sequential(
+            nn.Linear(in_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, N)
+        )
+
+    def forward(self, x):
+        return self.model(x)
+    
+Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state'))
+
+class ReplayMemory():
+    def __init__(self, capacity):
+        self.memory = deque([], maxlen=capacity) 
+    
+    def push(self, *args):
+        """Save a transition"""
+        self.memory.append(Transition(*args))
+
+    def sample(self, batch_size):
+        return random.sample(self.memory, batch_size)
+
+    def __len__(self):
+        return len(self.memory)
+
