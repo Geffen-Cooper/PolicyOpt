@@ -10,9 +10,6 @@ from pathlib import Path
 parser = argparse.ArgumentParser(description='Preprocess DSADS Dataset')
 parser.add_argument('--root_dir', type=str, default="~/Projects/data/dsads", help='path to dsads dataset')
 parser.add_argument('--activity_list', nargs='+', type=int, help='List of integers')
-parser.add_argument('--seed', type=int, default=0, help='random seed')
-parser.add_argument('--min_duration', type=int, default=10, help='minimum activity duration')
-parser.add_argument('--max_duration', type=int, default=30, help='maximum activity duration')
 parser.add_argument('--body_part', type=str, default="right_leg", help='which body part to use')
 
 args = parser.parse_args()
@@ -96,18 +93,6 @@ label_map = {
 active_label_map = {
     i:label_map[j] for i,j in enumerate(args.activity_list)
 }
-# active_label_map = {
-#              0:'ascending stairs',
-#              1:'descending stairs',
-#              2:'walking in parking lot',
-#              3:'walking on inclined treadmill',
-#              4:'running on treadmill,',
-#              5:'exercising on stepper',
-#              6:'exercising on cross trainer',
-#              7:'cycling on exercise bike vertical',
-#              8:'jumping',
-#              9:'playing basketball'
-#              }
 
 # ============ load remaining args ============
 new_sampling_rate = og_sampling_rate
@@ -130,13 +115,6 @@ if __name__ == '__main__':
     segment_files.sort(key=lambda f: int(re.sub('\D', '', f)))
 
     # load the data and labels
-    train_data_list = []
-    val_data_list = []
-    test_data_list = []
-    
-    train_label_list = []
-    val_label_list = []
-    test_label_list = []
 
     activities = active_label_map.keys()
     # activities = args.activity_list
@@ -188,55 +166,17 @@ if __name__ == '__main__':
             val_label_pool[active_activity_i][user_i*val_seg_len:user_i*val_seg_len+val_seg_len] = label_array[train_seg_len:train_seg_len+val_seg_len]
             testing_label_pool[active_activity_i][user_i*test_seg_len:user_i*test_seg_len+test_seg_len] = label_array[train_seg_len+val_seg_len:]
     
-    # create the random activity sequences
-    # we sample an activity duration from [min,max]
-    args.min_duration = 10
-    args.max_duration = 30
-    duration = np.arange(args.min_duration,args.max_duration+1)
+    # merge training, validation, and test data each into arrays
+    training_data = np.concatenate([training_data_pool[i] for i in training_data_pool.keys()])
+    val_data = np.concatenate([val_data_pool[i] for i in val_data_pool.keys()])
+    testing_data = np.concatenate([testing_data_pool[i] for i in testing_data_pool.keys()])
 
-    data_pools = [training_data_pool,val_data_pool,testing_data_pool]
-    label_pools = [training_label_pool,val_label_pool,testing_label_pool]
+    training_labels = np.concatenate([training_label_pool[i] for i in training_label_pool.keys()])
+    val_labels = np.concatenate([val_label_pool[i] for i in val_label_pool.keys()])
+    testing_labels = np.concatenate([testing_label_pool[i] for i in testing_label_pool.keys()])
 
-    training_data = np.zeros((train_pool_len*len(activities),len(active_channels)))
-    val_data = np.zeros((val_pool_len*len(activities),len(active_channels)))
-    testing_data = np.zeros((test_pool_len*len(activities),len(active_channels)))
 
-    training_labels = np.zeros(train_pool_len*len(activities))
-    val_labels = np.zeros(val_pool_len*len(activities))
-    testing_labels = np.zeros(test_pool_len*len(activities))
-
-    data_seqs = [training_data, val_data, testing_data]
-    label_seqs = [training_labels, val_labels, testing_labels]
-
-    for data_pool, label_pool, data_seq, label_seq in zip(data_pools,label_pools, data_seqs, label_seqs):
-        activity_counters = np.zeros(len(activities)) # keeps track of where we are
-        remaining_activities = list(activities)
-        sample_counter = 0
-
-        while len(remaining_activities) > 0:
-            # randomly sample an activity
-            act = np.random.choice(np.array(remaining_activities), 1)[0]
-
-            # randomly sample a duration
-            dur = np.random.choice(duration, 1)[0]
-
-            # access this chunk of data and add to sequence
-            start = int(activity_counters[act])
-            end = int(start + dur*og_sampling_rate)
-
-            activity_counters[act] += (end-start)
-
-            # check if hit end
-            if end >= data_pool[act].shape[0]:
-                end = int(data_pool[act].shape[0])
-                remaining_activities.remove(act)
-                print(remaining_activities)
-            # print(activity_counters)
-            data_seq[sample_counter:sample_counter+end-start,:] = data_pool[act][start:end,:]
-            label_seq[sample_counter:sample_counter+end-start] = label_pool[act][start:end]
-            sample_counter += (end-start)
-
-    # windowing to train classifier    
+    # windowing on training/validation data to train classifier    
     slide = int(window_len*(1-overlap_frac))
     training_window_idxs = np.arange(0,training_data.shape[0]-window_len,slide)
     training_window_labels = training_labels[training_window_idxs]
@@ -272,6 +212,7 @@ if __name__ == '__main__':
 
     np.save(f"{folder}/testing_data",testing_data)
     np.save(f"{folder}/testing_labels",testing_labels)
+    np.save(f"activity_list",np.array(args.activity_list))
 
 
     # classifier data

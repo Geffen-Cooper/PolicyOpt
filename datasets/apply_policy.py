@@ -120,6 +120,7 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 	# iterate over energy values
 	while k < len(e_trace):
 		# print(k)
+		# print(k)
 		# update energy state
 		e_trace[k] = e_trace[k-1] + e_harvest[k] - LEAKAGE_PER_SAMPLE
 		# print(k, e_trace[k],STATE,thresh,e_harvest[k],LEAKAGE_PER_SAMPLE)
@@ -138,12 +139,9 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 			# OFF -> ON_CANT_TX
 			if STATE == DeviceState.OFF: # turn on when have init overhead
 				# OFF -> ON_CANT_TX
-				if e_trace[k] >= 5*LEAKAGE_PER_SAMPLE + init_overhead:
+				if e_trace[k] >= 5*LEAKAGE_PER_SAMPLE + init_overhead and k+1 < len(e_trace):
 					STATE = DeviceState.ON_CANT_TX
-					try:
-						e_trace[k+1] = e_trace[k] - init_overhead # apply overhead instantly
-					except:
-						break
+					e_trace[k+1] = e_trace[k] - init_overhead # apply overhead instantly
 					k += 2
 				# OFF -> OFF
 				else:
@@ -294,44 +292,44 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 					k += 1
 
 			
-		''' ----------- Package Data after applying policies -------- '''
+	''' ----------- Package Data after applying policies -------- '''
 
-		# masking the data based on energy
-		for acc in 'xyz':
-			df[acc+'_eh'] = df[acc] * valid
+	# masking the data based on energy
+	for acc in 'xyz':
+		df[acc+'_eh'] = df[acc] * valid
 
-		# get the transition points of the masked data to see where packets start and end
-		og_data = df[acc+'_eh'].values
-		rolled_data = np.roll(og_data, 1)
-		rolled_data[0] = np.nan # in case we end halfway through a valid packet
-		nan_to_num_transition_indices = np.where(~np.isnan(og_data) & np.isnan(rolled_data))[0] # arrival idxs
-		num_to_nan_transition_indices = np.where(np.isnan(og_data) & ~np.isnan(rolled_data))[0] # ending idxs
+	# get the transition points of the masked data to see where packets start and end
+	og_data = df[acc+'_eh'].values
+	rolled_data = np.roll(og_data, 1)
+	rolled_data[0] = np.nan # in case we end halfway through a valid packet
+	nan_to_num_transition_indices = np.where(~np.isnan(og_data) & np.isnan(rolled_data))[0] # arrival idxs
+	num_to_nan_transition_indices = np.where(np.isnan(og_data) & ~np.isnan(rolled_data))[0] # ending idxs
+	
+	# now get the actually sampled data as a list of windows
+	arr = df[['x_eh','y_eh','z_eh']].values
+	packet_data = [                                                                               # this zip operation is important because if we end halfway through a packet it is skipped (number of starts and ends must match)
+					arr[packet_start_idx : packet_end_idx] for packet_start_idx,packet_end_idx in zip(nan_to_num_transition_indices,num_to_nan_transition_indices)
+					]
+	
+	# get the arrival time of each packet (note that the arrival time is the end of the data)
+	time_idxs = df['time']
+	arrival_times = [ 
+					time_idxs[packet_end_idx-1] for packet_end_idx in num_to_nan_transition_indices
+					]
+	
+	# each item in the list is a packet_size x 3 array, so we just stack into one array
+	if len(packet_data) > 0:
+		packet_data = np.stack(packet_data)
 		
-		# now get the actually sampled data as a list of windows
-		arr = df[['x_eh','y_eh','z_eh']].values
-		packet_data = [                                                                               # this zip operation is important because if we end halfway through a packet it is skipped (number of starts and ends must match)
-						arr[packet_start_idx : packet_end_idx] for packet_start_idx,packet_end_idx in zip(nan_to_num_transition_indices,num_to_nan_transition_indices)
-						]
-		
-		# get the arrival time of each packet (note that the arrival time is the end of the data)
-		time_idxs = df['time']
-		arrival_times = [ 
-						time_idxs[packet_end_idx-1] for packet_end_idx in num_to_nan_transition_indices
-						]
-		
-		# each item in the list is a packet_size x 3 array, so we just stack into one array
-		if len(packet_data) > 0:
-			packet_data = np.stack(packet_data)
-			
-		# we make the list into an array of packet_size x 1
-		if len(arrival_times) > 0:
-			arrival_times = np.stack(arrival_times)
-		else:
-			arrival_times = np.array(arrival_times)
-		
-		# store as a tuple
-		# entry 0 is P x 1 and entry 1 is P x packet_size x 3
-		packets = (arrival_times,packet_data)
+	# we make the list into an array of packet_size x 1
+	if len(arrival_times) > 0:
+		arrival_times = np.stack(arrival_times)
+	else:
+		arrival_times = np.array(arrival_times)
+	
+	# store as a tuple
+	# entry 0 is P x 1 and entry 1 is P x packet_size x 3
+	packets = (arrival_times,packet_data)
 	# import matplotlib.pyplot as plt
 	# plt.plot(e_out)
 	# plt.plot(e_trace)

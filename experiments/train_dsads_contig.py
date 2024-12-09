@@ -8,6 +8,7 @@ from datasets.dsads_contig.dsads import *
 from train import *
 from models import *
 
+activities = np.load("../datasets/dsads_contig/activity_list.npy")
 
 if __name__ == '__main__':
 
@@ -26,8 +27,9 @@ if __name__ == '__main__':
 	seeds = [123,456,789]
 
 	for seed_i,seed in enumerate(seeds):
+
 		# setup the session
-		logger = init_logger(f"{logging_prefix}/train_seed{seed}")
+		logger = init_logger(f"{logging_prefix}/train_seed{seed}_activities_{activities}")
 		init_seeds(seed)
 		
 		logger.info(f"Seed: {seed}")
@@ -36,16 +38,16 @@ if __name__ == '__main__':
 		train_loader,val_loader,test_loader = load_dsads_person_dataset(BATCH_SIZE)
 
 		# init models
-		model = SimpleNet(3,19)
+		model = SimpleNet(3,len(np.unique(train_loader.dataset.raw_labels)))
 		opt = torch.optim.SGD(model.parameters(),lr=LR,momentum=MOMENTUM,weight_decay=WD)
 
 		# load the model if already trained
-		ckpt_path = os.path.join(PROJECT_ROOT,f"saved_data/checkpoints/{logging_prefix}/seed{seed}.pth")
+		ckpt_path = os.path.join(PROJECT_ROOT,f"saved_data/checkpoints/{logging_prefix}/seed{seed}_activities_{activities}.pth")
 		if os.path.exists(ckpt_path):
 			model.load_state_dict(torch.load(ckpt_path)['model_state_dict'])
 		else:
 			# otherwise train the model
-			train(model,nn.CrossEntropyLoss(label_smoothing=0.1),opt,f"{logging_prefix}/seed{seed}",EPOCHS,ESE,device,
+			train(model,nn.CrossEntropyLoss(label_smoothing=0.1),opt,f"{logging_prefix}/seed{seed}_activities_{activities}",EPOCHS,ESE,device,
 				train_loader,val_loader,logger,torch.optim.lr_scheduler.CosineAnnealingLR(opt,EPOCHS),20)
 			
 		# load the one with the best validation accuracy and evaluate on test set

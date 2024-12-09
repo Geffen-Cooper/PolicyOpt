@@ -2,11 +2,9 @@
 
 python preprocess.py \
     --root_dir ~/Projects/data/dsads \
-    --seed 1 \
-    --min_duration 10 \
-    --max_duration 30 \
     --body_part right_leg \
-    --activity_list 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 \
+    --activity_list 9 11 15 17 18  \
+    # --activity_list 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 \
     # 0: --- sitting
     # 1: --- standing
     # 2: --- lying on back

@@ -28,19 +28,6 @@ class DSADS(Dataset):
 
     """
     def __init__(self, root_dir,train=False,val=False,test=False):
-        # activity labels (order matters)
-        self.label_map = {
-             0:'ascending stairs',
-             1:'descending stairs',
-             2:'walking in parking lot',
-             3:'walking on inclined treadmill',
-             4:'running on treadmill,',
-             5:'exercising on stepper',
-             6:'exercising on cross trainer',
-             7:'cycling on exercise bike vertical',
-             8:'jumping',
-             9:'playing basketball'
-             }
         
         # accelerometer channels
         self.body_part_map = {'right_leg':[0,1,2]}
