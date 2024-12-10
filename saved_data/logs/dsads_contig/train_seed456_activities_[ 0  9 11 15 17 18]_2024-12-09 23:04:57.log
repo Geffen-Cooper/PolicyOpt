@@ -1,0 +1,1405 @@
+2024-12-09 23:04:57,131 [INFO] Seed: 456
+2024-12-09 23:04:57,152 [INFO] locals/model --> SimpleNet(
+  (conv1): Conv1d(3, 8, kernel_size=(5,), stride=(1,), padding=(2,))
+  (conv2): Conv1d(8, 8, kernel_size=(5,), stride=(1,), padding=(2,))
+  (fc1): Linear(in_features=64, out_features=6, bias=True)
+)
+2024-12-09 23:04:57,152 [INFO] locals/loss_fn --> CrossEntropyLoss()
+2024-12-09 23:04:57,152 [INFO] locals/optimizer --> SGD (
+Parameter Group 0
+    dampening: 0
+    differentiable: False
+    foreach: None
+    initial_lr: 0.01
+    lr: 0.01
+    maximize: False
+    momentum: 0.9
+    nesterov: False
+    weight_decay: 0.0001
+)
+2024-12-09 23:04:57,152 [INFO] locals/log_name --> dsads_contig/seed456_activities_[ 0  9 11 15 17 18]
+2024-12-09 23:04:57,152 [INFO] locals/epochs --> 50
+2024-12-09 23:04:57,152 [INFO] locals/ese --> 20
+2024-12-09 23:04:57,153 [INFO] locals/device --> cuda
+2024-12-09 23:04:57,153 [INFO] locals/train_loader --> <torch.utils.data.dataloader.DataLoader object at 0x7f1ceb432f90>
+2024-12-09 23:04:57,153 [INFO] locals/val_loader --> <torch.utils.data.dataloader.DataLoader object at 0x7f1ceb6d6a90>
+2024-12-09 23:04:57,153 [INFO] locals/logger --> <RootLogger root (INFO)>
+2024-12-09 23:04:57,153 [INFO] locals/lr_scheduler --> <torch.optim.lr_scheduler.CosineAnnealingLR object at 0x7f1ceb737750>
+2024-12-09 23:04:57,153 [INFO] locals/log_freq --> 20
+2024-12-09 23:04:57,153 [INFO] locals/writer --> <torch.utils.tensorboard.writer.SummaryWriter object at 0x7f1ceb737790>
+2024-12-09 23:04:57,153 [INFO] ****************************************** Training Started ******************************************
+2024-12-09 23:04:57,290 [INFO] Train Epoch: 0 [128/62998 (0%)] train loss: 1.784
+2024-12-09 23:04:57,317 [INFO] Train Epoch: 0 [2688/62998 (4%)] train loss: 1.785
+2024-12-09 23:04:57,346 [INFO] Train Epoch: 0 [5248/62998 (8%)] train loss: 1.763
+2024-12-09 23:04:57,376 [INFO] Train Epoch: 0 [7808/62998 (12%)] train loss: 1.689
+2024-12-09 23:04:57,403 [INFO] Train Epoch: 0 [10368/62998 (16%)] train loss: 1.574
+2024-12-09 23:04:57,429 [INFO] Train Epoch: 0 [12928/62998 (21%)] train loss: 1.509
+2024-12-09 23:04:57,457 [INFO] Train Epoch: 0 [15488/62998 (25%)] train loss: 1.437
+2024-12-09 23:04:57,484 [INFO] Train Epoch: 0 [18048/62998 (29%)] train loss: 1.307
+2024-12-09 23:04:57,510 [INFO] Train Epoch: 0 [20608/62998 (33%)] train loss: 1.257
+2024-12-09 23:04:57,537 [INFO] Train Epoch: 0 [23168/62998 (37%)] train loss: 1.198
+2024-12-09 23:04:57,564 [INFO] Train Epoch: 0 [25728/62998 (41%)] train loss: 1.172
+2024-12-09 23:04:57,591 [INFO] Train Epoch: 0 [28288/62998 (45%)] train loss: 1.121
+2024-12-09 23:04:57,618 [INFO] Train Epoch: 0 [30848/62998 (49%)] train loss: 1.097
+2024-12-09 23:04:57,645 [INFO] Train Epoch: 0 [33408/62998 (53%)] train loss: 1.136
+2024-12-09 23:04:57,672 [INFO] Train Epoch: 0 [35968/62998 (57%)] train loss: 1.053
+2024-12-09 23:04:57,698 [INFO] Train Epoch: 0 [38528/62998 (61%)] train loss: 1.040
+2024-12-09 23:04:57,725 [INFO] Train Epoch: 0 [41088/62998 (65%)] train loss: 1.064
+2024-12-09 23:04:57,752 [INFO] Train Epoch: 0 [43648/62998 (69%)] train loss: 1.046
+2024-12-09 23:04:57,779 [INFO] Train Epoch: 0 [46208/62998 (73%)] train loss: 0.972
+2024-12-09 23:04:57,807 [INFO] Train Epoch: 0 [48768/62998 (77%)] train loss: 0.930
+2024-12-09 23:04:57,834 [INFO] Train Epoch: 0 [51328/62998 (82%)] train loss: 0.938
+2024-12-09 23:04:57,861 [INFO] Train Epoch: 0 [53888/62998 (86%)] train loss: 0.948
+2024-12-09 23:04:57,889 [INFO] Train Epoch: 0 [56448/62998 (90%)] train loss: 0.942
+2024-12-09 23:04:57,916 [INFO] Train Epoch: 0 [59008/62998 (94%)] train loss: 0.875
+2024-12-09 23:04:57,943 [INFO] Train Epoch: 0 [61568/62998 (98%)] train loss: 0.942
+2024-12-09 23:04:58,189 [INFO] Train Epoch: 0, val_acc: 0.800, val_f1: 0.793, val loss: 0.870
+2024-12-09 23:04:58,189 [INFO] ==================== best validation metric ====================
+2024-12-09 23:04:58,189 [INFO] Train Epoch: 0, val_acc: 0.800, val_f1: 0.793, val loss: 0.870
+2024-12-09 23:04:58,300 [INFO] Train Epoch: 1 [128/62998 (0%)] train loss: 0.881
+2024-12-09 23:04:58,329 [INFO] Train Epoch: 1 [2688/62998 (4%)] train loss: 0.826
+2024-12-09 23:04:58,358 [INFO] Train Epoch: 1 [5248/62998 (8%)] train loss: 0.795
+2024-12-09 23:04:58,387 [INFO] Train Epoch: 1 [7808/62998 (12%)] train loss: 0.798
+2024-12-09 23:04:58,415 [INFO] Train Epoch: 1 [10368/62998 (16%)] train loss: 0.759
+2024-12-09 23:04:58,443 [INFO] Train Epoch: 1 [12928/62998 (21%)] train loss: 0.777
+2024-12-09 23:04:58,471 [INFO] Train Epoch: 1 [15488/62998 (25%)] train loss: 0.780
+2024-12-09 23:04:58,497 [INFO] Train Epoch: 1 [18048/62998 (29%)] train loss: 0.728
+2024-12-09 23:04:58,525 [INFO] Train Epoch: 1 [20608/62998 (33%)] train loss: 0.805
+2024-12-09 23:04:58,553 [INFO] Train Epoch: 1 [23168/62998 (37%)] train loss: 0.723
+2024-12-09 23:04:58,581 [INFO] Train Epoch: 1 [25728/62998 (41%)] train loss: 0.747
+2024-12-09 23:04:58,609 [INFO] Train Epoch: 1 [28288/62998 (45%)] train loss: 0.713
+2024-12-09 23:04:58,636 [INFO] Train Epoch: 1 [30848/62998 (49%)] train loss: 0.778
+2024-12-09 23:04:58,663 [INFO] Train Epoch: 1 [33408/62998 (53%)] train loss: 0.746
+2024-12-09 23:04:58,690 [INFO] Train Epoch: 1 [35968/62998 (57%)] train loss: 0.752
+2024-12-09 23:04:58,719 [INFO] Train Epoch: 1 [38528/62998 (61%)] train loss: 0.774
+2024-12-09 23:04:58,747 [INFO] Train Epoch: 1 [41088/62998 (65%)] train loss: 0.754
+2024-12-09 23:04:58,773 [INFO] Train Epoch: 1 [43648/62998 (69%)] train loss: 0.715
+2024-12-09 23:04:58,802 [INFO] Train Epoch: 1 [46208/62998 (73%)] train loss: 0.765
+2024-12-09 23:04:58,829 [INFO] Train Epoch: 1 [48768/62998 (77%)] train loss: 0.784
+2024-12-09 23:04:58,856 [INFO] Train Epoch: 1 [51328/62998 (82%)] train loss: 0.704
+2024-12-09 23:04:58,883 [INFO] Train Epoch: 1 [53888/62998 (86%)] train loss: 0.732
+2024-12-09 23:04:58,909 [INFO] Train Epoch: 1 [56448/62998 (90%)] train loss: 0.680
+2024-12-09 23:04:58,936 [INFO] Train Epoch: 1 [59008/62998 (94%)] train loss: 0.761
+2024-12-09 23:04:58,962 [INFO] Train Epoch: 1 [61568/62998 (98%)] train loss: 0.664
+2024-12-09 23:04:59,238 [INFO] Train Epoch: 1, val_acc: 0.848, val_f1: 0.846, val loss: 0.747
+2024-12-09 23:04:59,238 [INFO] ==================== best validation metric ====================
+2024-12-09 23:04:59,238 [INFO] Train Epoch: 1, val_acc: 0.848, val_f1: 0.846, val loss: 0.747
+2024-12-09 23:04:59,363 [INFO] Train Epoch: 2 [128/62998 (0%)] train loss: 0.762
+2024-12-09 23:04:59,397 [INFO] Train Epoch: 2 [2688/62998 (4%)] train loss: 0.750
+2024-12-09 23:04:59,425 [INFO] Train Epoch: 2 [5248/62998 (8%)] train loss: 0.639
+2024-12-09 23:04:59,452 [INFO] Train Epoch: 2 [7808/62998 (12%)] train loss: 0.720
+2024-12-09 23:04:59,479 [INFO] Train Epoch: 2 [10368/62998 (16%)] train loss: 0.705
+2024-12-09 23:04:59,506 [INFO] Train Epoch: 2 [12928/62998 (21%)] train loss: 0.708
+2024-12-09 23:04:59,533 [INFO] Train Epoch: 2 [15488/62998 (25%)] train loss: 0.765
+2024-12-09 23:04:59,560 [INFO] Train Epoch: 2 [18048/62998 (29%)] train loss: 0.726
+2024-12-09 23:04:59,587 [INFO] Train Epoch: 2 [20608/62998 (33%)] train loss: 0.800
+2024-12-09 23:04:59,615 [INFO] Train Epoch: 2 [23168/62998 (37%)] train loss: 0.724
+2024-12-09 23:04:59,641 [INFO] Train Epoch: 2 [25728/62998 (41%)] train loss: 0.725
+2024-12-09 23:04:59,668 [INFO] Train Epoch: 2 [28288/62998 (45%)] train loss: 0.712
+2024-12-09 23:04:59,694 [INFO] Train Epoch: 2 [30848/62998 (49%)] train loss: 0.711
+2024-12-09 23:04:59,721 [INFO] Train Epoch: 2 [33408/62998 (53%)] train loss: 0.721
+2024-12-09 23:04:59,749 [INFO] Train Epoch: 2 [35968/62998 (57%)] train loss: 0.725
+2024-12-09 23:04:59,776 [INFO] Train Epoch: 2 [38528/62998 (61%)] train loss: 0.752
+2024-12-09 23:04:59,803 [INFO] Train Epoch: 2 [41088/62998 (65%)] train loss: 0.672
+2024-12-09 23:04:59,828 [INFO] Train Epoch: 2 [43648/62998 (69%)] train loss: 0.662
+2024-12-09 23:04:59,855 [INFO] Train Epoch: 2 [46208/62998 (73%)] train loss: 0.650
+2024-12-09 23:04:59,883 [INFO] Train Epoch: 2 [48768/62998 (77%)] train loss: 0.716
+2024-12-09 23:04:59,910 [INFO] Train Epoch: 2 [51328/62998 (82%)] train loss: 0.690
+2024-12-09 23:04:59,937 [INFO] Train Epoch: 2 [53888/62998 (86%)] train loss: 0.639
+2024-12-09 23:04:59,964 [INFO] Train Epoch: 2 [56448/62998 (90%)] train loss: 0.656
+2024-12-09 23:04:59,991 [INFO] Train Epoch: 2 [59008/62998 (94%)] train loss: 0.674
+2024-12-09 23:05:00,019 [INFO] Train Epoch: 2 [61568/62998 (98%)] train loss: 0.741
+2024-12-09 23:05:00,264 [INFO] Train Epoch: 2, val_acc: 0.852, val_f1: 0.838, val loss: 0.737
+2024-12-09 23:05:00,264 [INFO] info: 0 num epochs without improving
+2024-12-09 23:05:00,398 [INFO] Train Epoch: 3 [128/62998 (0%)] train loss: 0.658
+2024-12-09 23:05:00,427 [INFO] Train Epoch: 3 [2688/62998 (4%)] train loss: 0.665
+2024-12-09 23:05:00,455 [INFO] Train Epoch: 3 [5248/62998 (8%)] train loss: 0.770
+2024-12-09 23:05:00,484 [INFO] Train Epoch: 3 [7808/62998 (12%)] train loss: 0.639
+2024-12-09 23:05:00,510 [INFO] Train Epoch: 3 [10368/62998 (16%)] train loss: 0.692
+2024-12-09 23:05:00,537 [INFO] Train Epoch: 3 [12928/62998 (21%)] train loss: 0.741
+2024-12-09 23:05:00,564 [INFO] Train Epoch: 3 [15488/62998 (25%)] train loss: 0.742
+2024-12-09 23:05:00,590 [INFO] Train Epoch: 3 [18048/62998 (29%)] train loss: 0.769
+2024-12-09 23:05:00,618 [INFO] Train Epoch: 3 [20608/62998 (33%)] train loss: 0.787
+2024-12-09 23:05:00,645 [INFO] Train Epoch: 3 [23168/62998 (37%)] train loss: 0.674
+2024-12-09 23:05:00,672 [INFO] Train Epoch: 3 [25728/62998 (41%)] train loss: 0.673
+2024-12-09 23:05:00,699 [INFO] Train Epoch: 3 [28288/62998 (45%)] train loss: 0.684
+2024-12-09 23:05:00,725 [INFO] Train Epoch: 3 [30848/62998 (49%)] train loss: 0.702
+2024-12-09 23:05:00,752 [INFO] Train Epoch: 3 [33408/62998 (53%)] train loss: 0.657
+2024-12-09 23:05:00,780 [INFO] Train Epoch: 3 [35968/62998 (57%)] train loss: 0.741
+2024-12-09 23:05:00,808 [INFO] Train Epoch: 3 [38528/62998 (61%)] train loss: 0.678
+2024-12-09 23:05:00,849 [INFO] Train Epoch: 3 [41088/62998 (65%)] train loss: 0.639
+2024-12-09 23:05:00,877 [INFO] Train Epoch: 3 [43648/62998 (69%)] train loss: 0.720
+2024-12-09 23:05:00,910 [INFO] Train Epoch: 3 [46208/62998 (73%)] train loss: 0.634
+2024-12-09 23:05:00,946 [INFO] Train Epoch: 3 [48768/62998 (77%)] train loss: 0.629
+2024-12-09 23:05:00,973 [INFO] Train Epoch: 3 [51328/62998 (82%)] train loss: 0.673
+2024-12-09 23:05:01,000 [INFO] Train Epoch: 3 [53888/62998 (86%)] train loss: 0.661
+2024-12-09 23:05:01,027 [INFO] Train Epoch: 3 [56448/62998 (90%)] train loss: 0.753
+2024-12-09 23:05:01,055 [INFO] Train Epoch: 3 [59008/62998 (94%)] train loss: 0.717
+2024-12-09 23:05:01,082 [INFO] Train Epoch: 3 [61568/62998 (98%)] train loss: 0.665
+2024-12-09 23:05:01,345 [INFO] Train Epoch: 3, val_acc: 0.867, val_f1: 0.863, val loss: 0.707
+2024-12-09 23:05:01,345 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:01,345 [INFO] Train Epoch: 3, val_acc: 0.867, val_f1: 0.863, val loss: 0.707
+2024-12-09 23:05:01,468 [INFO] Train Epoch: 4 [128/62998 (0%)] train loss: 0.692
+2024-12-09 23:05:01,498 [INFO] Train Epoch: 4 [2688/62998 (4%)] train loss: 0.668
+2024-12-09 23:05:01,524 [INFO] Train Epoch: 4 [5248/62998 (8%)] train loss: 0.659
+2024-12-09 23:05:01,551 [INFO] Train Epoch: 4 [7808/62998 (12%)] train loss: 0.744
+2024-12-09 23:05:01,579 [INFO] Train Epoch: 4 [10368/62998 (16%)] train loss: 0.697
+2024-12-09 23:05:01,606 [INFO] Train Epoch: 4 [12928/62998 (21%)] train loss: 0.678
+2024-12-09 23:05:01,636 [INFO] Train Epoch: 4 [15488/62998 (25%)] train loss: 0.679
+2024-12-09 23:05:01,663 [INFO] Train Epoch: 4 [18048/62998 (29%)] train loss: 0.717
+2024-12-09 23:05:01,691 [INFO] Train Epoch: 4 [20608/62998 (33%)] train loss: 0.709
+2024-12-09 23:05:01,719 [INFO] Train Epoch: 4 [23168/62998 (37%)] train loss: 0.710
+2024-12-09 23:05:01,747 [INFO] Train Epoch: 4 [25728/62998 (41%)] train loss: 0.670
+2024-12-09 23:05:01,774 [INFO] Train Epoch: 4 [28288/62998 (45%)] train loss: 0.624
+2024-12-09 23:05:01,801 [INFO] Train Epoch: 4 [30848/62998 (49%)] train loss: 0.632
+2024-12-09 23:05:01,828 [INFO] Train Epoch: 4 [33408/62998 (53%)] train loss: 0.723
+2024-12-09 23:05:01,857 [INFO] Train Epoch: 4 [35968/62998 (57%)] train loss: 0.726
+2024-12-09 23:05:01,885 [INFO] Train Epoch: 4 [38528/62998 (61%)] train loss: 0.652
+2024-12-09 23:05:01,915 [INFO] Train Epoch: 4 [41088/62998 (65%)] train loss: 0.707
+2024-12-09 23:05:01,943 [INFO] Train Epoch: 4 [43648/62998 (69%)] train loss: 0.672
+2024-12-09 23:05:01,970 [INFO] Train Epoch: 4 [46208/62998 (73%)] train loss: 0.703
+2024-12-09 23:05:01,996 [INFO] Train Epoch: 4 [48768/62998 (77%)] train loss: 0.765
+2024-12-09 23:05:02,023 [INFO] Train Epoch: 4 [51328/62998 (82%)] train loss: 0.674
+2024-12-09 23:05:02,051 [INFO] Train Epoch: 4 [53888/62998 (86%)] train loss: 0.675
+2024-12-09 23:05:02,079 [INFO] Train Epoch: 4 [56448/62998 (90%)] train loss: 0.646
+2024-12-09 23:05:02,106 [INFO] Train Epoch: 4 [59008/62998 (94%)] train loss: 0.678
+2024-12-09 23:05:02,134 [INFO] Train Epoch: 4 [61568/62998 (98%)] train loss: 0.679
+2024-12-09 23:05:02,385 [INFO] Train Epoch: 4, val_acc: 0.869, val_f1: 0.867, val loss: 0.697
+2024-12-09 23:05:02,385 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:02,385 [INFO] Train Epoch: 4, val_acc: 0.869, val_f1: 0.867, val loss: 0.697
+2024-12-09 23:05:02,526 [INFO] Train Epoch: 5 [128/62998 (0%)] train loss: 0.709
+2024-12-09 23:05:02,554 [INFO] Train Epoch: 5 [2688/62998 (4%)] train loss: 0.698
+2024-12-09 23:05:02,582 [INFO] Train Epoch: 5 [5248/62998 (8%)] train loss: 0.674
+2024-12-09 23:05:02,610 [INFO] Train Epoch: 5 [7808/62998 (12%)] train loss: 0.669
+2024-12-09 23:05:02,638 [INFO] Train Epoch: 5 [10368/62998 (16%)] train loss: 0.659
+2024-12-09 23:05:02,665 [INFO] Train Epoch: 5 [12928/62998 (21%)] train loss: 0.697
+2024-12-09 23:05:02,693 [INFO] Train Epoch: 5 [15488/62998 (25%)] train loss: 0.673
+2024-12-09 23:05:02,720 [INFO] Train Epoch: 5 [18048/62998 (29%)] train loss: 0.679
+2024-12-09 23:05:02,749 [INFO] Train Epoch: 5 [20608/62998 (33%)] train loss: 0.621
+2024-12-09 23:05:02,777 [INFO] Train Epoch: 5 [23168/62998 (37%)] train loss: 0.704
+2024-12-09 23:05:02,805 [INFO] Train Epoch: 5 [25728/62998 (41%)] train loss: 0.622
+2024-12-09 23:05:02,833 [INFO] Train Epoch: 5 [28288/62998 (45%)] train loss: 0.714
+2024-12-09 23:05:02,861 [INFO] Train Epoch: 5 [30848/62998 (49%)] train loss: 0.699
+2024-12-09 23:05:02,889 [INFO] Train Epoch: 5 [33408/62998 (53%)] train loss: 0.635
+2024-12-09 23:05:02,916 [INFO] Train Epoch: 5 [35968/62998 (57%)] train loss: 0.681
+2024-12-09 23:05:02,943 [INFO] Train Epoch: 5 [38528/62998 (61%)] train loss: 0.707
+2024-12-09 23:05:02,970 [INFO] Train Epoch: 5 [41088/62998 (65%)] train loss: 0.703
+2024-12-09 23:05:02,996 [INFO] Train Epoch: 5 [43648/62998 (69%)] train loss: 0.722
+2024-12-09 23:05:03,023 [INFO] Train Epoch: 5 [46208/62998 (73%)] train loss: 0.663
+2024-12-09 23:05:03,050 [INFO] Train Epoch: 5 [48768/62998 (77%)] train loss: 0.658
+2024-12-09 23:05:03,077 [INFO] Train Epoch: 5 [51328/62998 (82%)] train loss: 0.642
+2024-12-09 23:05:03,104 [INFO] Train Epoch: 5 [53888/62998 (86%)] train loss: 0.628
+2024-12-09 23:05:03,131 [INFO] Train Epoch: 5 [56448/62998 (90%)] train loss: 0.725
+2024-12-09 23:05:03,158 [INFO] Train Epoch: 5 [59008/62998 (94%)] train loss: 0.670
+2024-12-09 23:05:03,186 [INFO] Train Epoch: 5 [61568/62998 (98%)] train loss: 0.707
+2024-12-09 23:05:03,433 [INFO] Train Epoch: 5, val_acc: 0.879, val_f1: 0.876, val loss: 0.690
+2024-12-09 23:05:03,433 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:03,433 [INFO] Train Epoch: 5, val_acc: 0.879, val_f1: 0.876, val loss: 0.690
+2024-12-09 23:05:03,563 [INFO] Train Epoch: 6 [128/62998 (0%)] train loss: 0.560
+2024-12-09 23:05:03,595 [INFO] Train Epoch: 6 [2688/62998 (4%)] train loss: 0.696
+2024-12-09 23:05:03,622 [INFO] Train Epoch: 6 [5248/62998 (8%)] train loss: 0.633
+2024-12-09 23:05:03,650 [INFO] Train Epoch: 6 [7808/62998 (12%)] train loss: 0.673
+2024-12-09 23:05:03,678 [INFO] Train Epoch: 6 [10368/62998 (16%)] train loss: 0.717
+2024-12-09 23:05:03,706 [INFO] Train Epoch: 6 [12928/62998 (21%)] train loss: 0.666
+2024-12-09 23:05:03,731 [INFO] Train Epoch: 6 [15488/62998 (25%)] train loss: 0.682
+2024-12-09 23:05:03,758 [INFO] Train Epoch: 6 [18048/62998 (29%)] train loss: 0.644
+2024-12-09 23:05:03,789 [INFO] Train Epoch: 6 [20608/62998 (33%)] train loss: 0.666
+2024-12-09 23:05:03,817 [INFO] Train Epoch: 6 [23168/62998 (37%)] train loss: 0.645
+2024-12-09 23:05:03,843 [INFO] Train Epoch: 6 [25728/62998 (41%)] train loss: 0.615
+2024-12-09 23:05:03,871 [INFO] Train Epoch: 6 [28288/62998 (45%)] train loss: 0.691
+2024-12-09 23:05:03,898 [INFO] Train Epoch: 6 [30848/62998 (49%)] train loss: 0.640
+2024-12-09 23:05:03,925 [INFO] Train Epoch: 6 [33408/62998 (53%)] train loss: 0.633
+2024-12-09 23:05:03,952 [INFO] Train Epoch: 6 [35968/62998 (57%)] train loss: 0.716
+2024-12-09 23:05:03,980 [INFO] Train Epoch: 6 [38528/62998 (61%)] train loss: 0.660
+2024-12-09 23:05:04,008 [INFO] Train Epoch: 6 [41088/62998 (65%)] train loss: 0.624
+2024-12-09 23:05:04,035 [INFO] Train Epoch: 6 [43648/62998 (69%)] train loss: 0.590
+2024-12-09 23:05:04,062 [INFO] Train Epoch: 6 [46208/62998 (73%)] train loss: 0.709
+2024-12-09 23:05:04,092 [INFO] Train Epoch: 6 [48768/62998 (77%)] train loss: 0.692
+2024-12-09 23:05:04,119 [INFO] Train Epoch: 6 [51328/62998 (82%)] train loss: 0.602
+2024-12-09 23:05:04,146 [INFO] Train Epoch: 6 [53888/62998 (86%)] train loss: 0.665
+2024-12-09 23:05:04,173 [INFO] Train Epoch: 6 [56448/62998 (90%)] train loss: 0.659
+2024-12-09 23:05:04,200 [INFO] Train Epoch: 6 [59008/62998 (94%)] train loss: 0.685
+2024-12-09 23:05:04,227 [INFO] Train Epoch: 6 [61568/62998 (98%)] train loss: 0.613
+2024-12-09 23:05:04,477 [INFO] Train Epoch: 6, val_acc: 0.874, val_f1: 0.872, val loss: 0.691
+2024-12-09 23:05:04,477 [INFO] info: 0 num epochs without improving
+2024-12-09 23:05:04,602 [INFO] Train Epoch: 7 [128/62998 (0%)] train loss: 0.596
+2024-12-09 23:05:04,630 [INFO] Train Epoch: 7 [2688/62998 (4%)] train loss: 0.638
+2024-12-09 23:05:04,659 [INFO] Train Epoch: 7 [5248/62998 (8%)] train loss: 0.654
+2024-12-09 23:05:04,688 [INFO] Train Epoch: 7 [7808/62998 (12%)] train loss: 0.756
+2024-12-09 23:05:04,716 [INFO] Train Epoch: 7 [10368/62998 (16%)] train loss: 0.709
+2024-12-09 23:05:04,744 [INFO] Train Epoch: 7 [12928/62998 (21%)] train loss: 0.595
+2024-12-09 23:05:04,771 [INFO] Train Epoch: 7 [15488/62998 (25%)] train loss: 0.630
+2024-12-09 23:05:04,796 [INFO] Train Epoch: 7 [18048/62998 (29%)] train loss: 0.638
+2024-12-09 23:05:04,823 [INFO] Train Epoch: 7 [20608/62998 (33%)] train loss: 0.677
+2024-12-09 23:05:04,851 [INFO] Train Epoch: 7 [23168/62998 (37%)] train loss: 0.703
+2024-12-09 23:05:04,878 [INFO] Train Epoch: 7 [25728/62998 (41%)] train loss: 0.647
+2024-12-09 23:05:04,906 [INFO] Train Epoch: 7 [28288/62998 (45%)] train loss: 0.668
+2024-12-09 23:05:04,932 [INFO] Train Epoch: 7 [30848/62998 (49%)] train loss: 0.684
+2024-12-09 23:05:04,959 [INFO] Train Epoch: 7 [33408/62998 (53%)] train loss: 0.674
+2024-12-09 23:05:04,986 [INFO] Train Epoch: 7 [35968/62998 (57%)] train loss: 0.597
+2024-12-09 23:05:05,014 [INFO] Train Epoch: 7 [38528/62998 (61%)] train loss: 0.693
+2024-12-09 23:05:05,041 [INFO] Train Epoch: 7 [41088/62998 (65%)] train loss: 0.663
+2024-12-09 23:05:05,067 [INFO] Train Epoch: 7 [43648/62998 (69%)] train loss: 0.653
+2024-12-09 23:05:05,094 [INFO] Train Epoch: 7 [46208/62998 (73%)] train loss: 0.689
+2024-12-09 23:05:05,122 [INFO] Train Epoch: 7 [48768/62998 (77%)] train loss: 0.694
+2024-12-09 23:05:05,149 [INFO] Train Epoch: 7 [51328/62998 (82%)] train loss: 0.632
+2024-12-09 23:05:05,177 [INFO] Train Epoch: 7 [53888/62998 (86%)] train loss: 0.626
+2024-12-09 23:05:05,204 [INFO] Train Epoch: 7 [56448/62998 (90%)] train loss: 0.652
+2024-12-09 23:05:05,231 [INFO] Train Epoch: 7 [59008/62998 (94%)] train loss: 0.595
+2024-12-09 23:05:05,259 [INFO] Train Epoch: 7 [61568/62998 (98%)] train loss: 0.667
+2024-12-09 23:05:05,510 [INFO] Train Epoch: 7, val_acc: 0.881, val_f1: 0.878, val loss: 0.680
+2024-12-09 23:05:05,510 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:05,510 [INFO] Train Epoch: 7, val_acc: 0.881, val_f1: 0.878, val loss: 0.680
+2024-12-09 23:05:05,633 [INFO] Train Epoch: 8 [128/62998 (0%)] train loss: 0.608
+2024-12-09 23:05:05,674 [INFO] Train Epoch: 8 [2688/62998 (4%)] train loss: 0.623
+2024-12-09 23:05:05,702 [INFO] Train Epoch: 8 [5248/62998 (8%)] train loss: 0.676
+2024-12-09 23:05:05,729 [INFO] Train Epoch: 8 [7808/62998 (12%)] train loss: 0.620
+2024-12-09 23:05:05,756 [INFO] Train Epoch: 8 [10368/62998 (16%)] train loss: 0.643
+2024-12-09 23:05:05,784 [INFO] Train Epoch: 8 [12928/62998 (21%)] train loss: 0.640
+2024-12-09 23:05:05,811 [INFO] Train Epoch: 8 [15488/62998 (25%)] train loss: 0.682
+2024-12-09 23:05:05,839 [INFO] Train Epoch: 8 [18048/62998 (29%)] train loss: 0.653
+2024-12-09 23:05:05,866 [INFO] Train Epoch: 8 [20608/62998 (33%)] train loss: 0.727
+2024-12-09 23:05:05,894 [INFO] Train Epoch: 8 [23168/62998 (37%)] train loss: 0.649
+2024-12-09 23:05:05,921 [INFO] Train Epoch: 8 [25728/62998 (41%)] train loss: 0.653
+2024-12-09 23:05:05,948 [INFO] Train Epoch: 8 [28288/62998 (45%)] train loss: 0.707
+2024-12-09 23:05:05,975 [INFO] Train Epoch: 8 [30848/62998 (49%)] train loss: 0.715
+2024-12-09 23:05:06,002 [INFO] Train Epoch: 8 [33408/62998 (53%)] train loss: 0.764
+2024-12-09 23:05:06,029 [INFO] Train Epoch: 8 [35968/62998 (57%)] train loss: 0.706
+2024-12-09 23:05:06,056 [INFO] Train Epoch: 8 [38528/62998 (61%)] train loss: 0.633
+2024-12-09 23:05:06,083 [INFO] Train Epoch: 8 [41088/62998 (65%)] train loss: 0.693
+2024-12-09 23:05:06,110 [INFO] Train Epoch: 8 [43648/62998 (69%)] train loss: 0.704
+2024-12-09 23:05:06,138 [INFO] Train Epoch: 8 [46208/62998 (73%)] train loss: 0.685
+2024-12-09 23:05:06,165 [INFO] Train Epoch: 8 [48768/62998 (77%)] train loss: 0.589
+2024-12-09 23:05:06,193 [INFO] Train Epoch: 8 [51328/62998 (82%)] train loss: 0.606
+2024-12-09 23:05:06,220 [INFO] Train Epoch: 8 [53888/62998 (86%)] train loss: 0.633
+2024-12-09 23:05:06,248 [INFO] Train Epoch: 8 [56448/62998 (90%)] train loss: 0.673
+2024-12-09 23:05:06,276 [INFO] Train Epoch: 8 [59008/62998 (94%)] train loss: 0.678
+2024-12-09 23:05:06,303 [INFO] Train Epoch: 8 [61568/62998 (98%)] train loss: 0.664
+2024-12-09 23:05:06,551 [INFO] Train Epoch: 8, val_acc: 0.886, val_f1: 0.881, val loss: 0.676
+2024-12-09 23:05:06,551 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:06,551 [INFO] Train Epoch: 8, val_acc: 0.886, val_f1: 0.881, val loss: 0.676
+2024-12-09 23:05:06,668 [INFO] Train Epoch: 9 [128/62998 (0%)] train loss: 0.655
+2024-12-09 23:05:06,704 [INFO] Train Epoch: 9 [2688/62998 (4%)] train loss: 0.737
+2024-12-09 23:05:06,734 [INFO] Train Epoch: 9 [5248/62998 (8%)] train loss: 0.696
+2024-12-09 23:05:06,762 [INFO] Train Epoch: 9 [7808/62998 (12%)] train loss: 0.623
+2024-12-09 23:05:06,790 [INFO] Train Epoch: 9 [10368/62998 (16%)] train loss: 0.665
+2024-12-09 23:05:06,819 [INFO] Train Epoch: 9 [12928/62998 (21%)] train loss: 0.707
+2024-12-09 23:05:06,847 [INFO] Train Epoch: 9 [15488/62998 (25%)] train loss: 0.674
+2024-12-09 23:05:06,874 [INFO] Train Epoch: 9 [18048/62998 (29%)] train loss: 0.663
+2024-12-09 23:05:06,902 [INFO] Train Epoch: 9 [20608/62998 (33%)] train loss: 0.671
+2024-12-09 23:05:06,931 [INFO] Train Epoch: 9 [23168/62998 (37%)] train loss: 0.657
+2024-12-09 23:05:06,959 [INFO] Train Epoch: 9 [25728/62998 (41%)] train loss: 0.670
+2024-12-09 23:05:06,986 [INFO] Train Epoch: 9 [28288/62998 (45%)] train loss: 0.657
+2024-12-09 23:05:07,014 [INFO] Train Epoch: 9 [30848/62998 (49%)] train loss: 0.646
+2024-12-09 23:05:07,041 [INFO] Train Epoch: 9 [33408/62998 (53%)] train loss: 0.619
+2024-12-09 23:05:07,068 [INFO] Train Epoch: 9 [35968/62998 (57%)] train loss: 0.661
+2024-12-09 23:05:07,096 [INFO] Train Epoch: 9 [38528/62998 (61%)] train loss: 0.566
+2024-12-09 23:05:07,125 [INFO] Train Epoch: 9 [41088/62998 (65%)] train loss: 0.618
+2024-12-09 23:05:07,152 [INFO] Train Epoch: 9 [43648/62998 (69%)] train loss: 0.637
+2024-12-09 23:05:07,181 [INFO] Train Epoch: 9 [46208/62998 (73%)] train loss: 0.653
+2024-12-09 23:05:07,208 [INFO] Train Epoch: 9 [48768/62998 (77%)] train loss: 0.748
+2024-12-09 23:05:07,236 [INFO] Train Epoch: 9 [51328/62998 (82%)] train loss: 0.606
+2024-12-09 23:05:07,263 [INFO] Train Epoch: 9 [53888/62998 (86%)] train loss: 0.646
+2024-12-09 23:05:07,291 [INFO] Train Epoch: 9 [56448/62998 (90%)] train loss: 0.648
+2024-12-09 23:05:07,318 [INFO] Train Epoch: 9 [59008/62998 (94%)] train loss: 0.666
+2024-12-09 23:05:07,345 [INFO] Train Epoch: 9 [61568/62998 (98%)] train loss: 0.663
+2024-12-09 23:05:07,586 [INFO] Train Epoch: 9, val_acc: 0.886, val_f1: 0.881, val loss: 0.678
+2024-12-09 23:05:07,586 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:07,587 [INFO] Train Epoch: 9, val_acc: 0.886, val_f1: 0.881, val loss: 0.678
+2024-12-09 23:05:07,721 [INFO] Train Epoch: 10 [128/62998 (0%)] train loss: 0.652
+2024-12-09 23:05:07,750 [INFO] Train Epoch: 10 [2688/62998 (4%)] train loss: 0.605
+2024-12-09 23:05:07,777 [INFO] Train Epoch: 10 [5248/62998 (8%)] train loss: 0.598
+2024-12-09 23:05:07,804 [INFO] Train Epoch: 10 [7808/62998 (12%)] train loss: 0.643
+2024-12-09 23:05:07,831 [INFO] Train Epoch: 10 [10368/62998 (16%)] train loss: 0.598
+2024-12-09 23:05:07,859 [INFO] Train Epoch: 10 [12928/62998 (21%)] train loss: 0.664
+2024-12-09 23:05:07,887 [INFO] Train Epoch: 10 [15488/62998 (25%)] train loss: 0.650
+2024-12-09 23:05:07,915 [INFO] Train Epoch: 10 [18048/62998 (29%)] train loss: 0.727
+2024-12-09 23:05:07,942 [INFO] Train Epoch: 10 [20608/62998 (33%)] train loss: 0.716
+2024-12-09 23:05:07,970 [INFO] Train Epoch: 10 [23168/62998 (37%)] train loss: 0.622
+2024-12-09 23:05:07,996 [INFO] Train Epoch: 10 [25728/62998 (41%)] train loss: 0.699
+2024-12-09 23:05:08,024 [INFO] Train Epoch: 10 [28288/62998 (45%)] train loss: 0.635
+2024-12-09 23:05:08,052 [INFO] Train Epoch: 10 [30848/62998 (49%)] train loss: 0.625
+2024-12-09 23:05:08,079 [INFO] Train Epoch: 10 [33408/62998 (53%)] train loss: 0.683
+2024-12-09 23:05:08,107 [INFO] Train Epoch: 10 [35968/62998 (57%)] train loss: 0.597
+2024-12-09 23:05:08,134 [INFO] Train Epoch: 10 [38528/62998 (61%)] train loss: 0.675
+2024-12-09 23:05:08,162 [INFO] Train Epoch: 10 [41088/62998 (65%)] train loss: 0.674
+2024-12-09 23:05:08,190 [INFO] Train Epoch: 10 [43648/62998 (69%)] train loss: 0.676
+2024-12-09 23:05:08,219 [INFO] Train Epoch: 10 [46208/62998 (73%)] train loss: 0.635
+2024-12-09 23:05:08,245 [INFO] Train Epoch: 10 [48768/62998 (77%)] train loss: 0.600
+2024-12-09 23:05:08,274 [INFO] Train Epoch: 10 [51328/62998 (82%)] train loss: 0.669
+2024-12-09 23:05:08,301 [INFO] Train Epoch: 10 [53888/62998 (86%)] train loss: 0.660
+2024-12-09 23:05:08,328 [INFO] Train Epoch: 10 [56448/62998 (90%)] train loss: 0.718
+2024-12-09 23:05:08,356 [INFO] Train Epoch: 10 [59008/62998 (94%)] train loss: 0.691
+2024-12-09 23:05:08,384 [INFO] Train Epoch: 10 [61568/62998 (98%)] train loss: 0.680
+2024-12-09 23:05:08,632 [INFO] Train Epoch: 10, val_acc: 0.893, val_f1: 0.889, val loss: 0.664
+2024-12-09 23:05:08,632 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:08,632 [INFO] Train Epoch: 10, val_acc: 0.893, val_f1: 0.889, val loss: 0.664
+2024-12-09 23:05:08,756 [INFO] Train Epoch: 11 [128/62998 (0%)] train loss: 0.662
+2024-12-09 23:05:08,787 [INFO] Train Epoch: 11 [2688/62998 (4%)] train loss: 0.664
+2024-12-09 23:05:08,814 [INFO] Train Epoch: 11 [5248/62998 (8%)] train loss: 0.655
+2024-12-09 23:05:08,842 [INFO] Train Epoch: 11 [7808/62998 (12%)] train loss: 0.614
+2024-12-09 23:05:08,869 [INFO] Train Epoch: 11 [10368/62998 (16%)] train loss: 0.722
+2024-12-09 23:05:08,896 [INFO] Train Epoch: 11 [12928/62998 (21%)] train loss: 0.622
+2024-12-09 23:05:08,923 [INFO] Train Epoch: 11 [15488/62998 (25%)] train loss: 0.618
+2024-12-09 23:05:08,951 [INFO] Train Epoch: 11 [18048/62998 (29%)] train loss: 0.672
+2024-12-09 23:05:08,979 [INFO] Train Epoch: 11 [20608/62998 (33%)] train loss: 0.628
+2024-12-09 23:05:09,005 [INFO] Train Epoch: 11 [23168/62998 (37%)] train loss: 0.635
+2024-12-09 23:05:09,031 [INFO] Train Epoch: 11 [25728/62998 (41%)] train loss: 0.694
+2024-12-09 23:05:09,059 [INFO] Train Epoch: 11 [28288/62998 (45%)] train loss: 0.636
+2024-12-09 23:05:09,088 [INFO] Train Epoch: 11 [30848/62998 (49%)] train loss: 0.626
+2024-12-09 23:05:09,114 [INFO] Train Epoch: 11 [33408/62998 (53%)] train loss: 0.693
+2024-12-09 23:05:09,143 [INFO] Train Epoch: 11 [35968/62998 (57%)] train loss: 0.694
+2024-12-09 23:05:09,170 [INFO] Train Epoch: 11 [38528/62998 (61%)] train loss: 0.681
+2024-12-09 23:05:09,196 [INFO] Train Epoch: 11 [41088/62998 (65%)] train loss: 0.645
+2024-12-09 23:05:09,223 [INFO] Train Epoch: 11 [43648/62998 (69%)] train loss: 0.709
+2024-12-09 23:05:09,251 [INFO] Train Epoch: 11 [46208/62998 (73%)] train loss: 0.694
+2024-12-09 23:05:09,279 [INFO] Train Epoch: 11 [48768/62998 (77%)] train loss: 0.614
+2024-12-09 23:05:09,306 [INFO] Train Epoch: 11 [51328/62998 (82%)] train loss: 0.663
+2024-12-09 23:05:09,333 [INFO] Train Epoch: 11 [53888/62998 (86%)] train loss: 0.670
+2024-12-09 23:05:09,360 [INFO] Train Epoch: 11 [56448/62998 (90%)] train loss: 0.585
+2024-12-09 23:05:09,387 [INFO] Train Epoch: 11 [59008/62998 (94%)] train loss: 0.659
+2024-12-09 23:05:09,414 [INFO] Train Epoch: 11 [61568/62998 (98%)] train loss: 0.636
+2024-12-09 23:05:09,660 [INFO] Train Epoch: 11, val_acc: 0.893, val_f1: 0.888, val loss: 0.663
+2024-12-09 23:05:09,660 [INFO] info: 0 num epochs without improving
+2024-12-09 23:05:09,774 [INFO] Train Epoch: 12 [128/62998 (0%)] train loss: 0.644
+2024-12-09 23:05:09,805 [INFO] Train Epoch: 12 [2688/62998 (4%)] train loss: 0.604
+2024-12-09 23:05:09,832 [INFO] Train Epoch: 12 [5248/62998 (8%)] train loss: 0.621
+2024-12-09 23:05:09,860 [INFO] Train Epoch: 12 [7808/62998 (12%)] train loss: 0.668
+2024-12-09 23:05:09,887 [INFO] Train Epoch: 12 [10368/62998 (16%)] train loss: 0.640
+2024-12-09 23:05:09,915 [INFO] Train Epoch: 12 [12928/62998 (21%)] train loss: 0.652
+2024-12-09 23:05:09,942 [INFO] Train Epoch: 12 [15488/62998 (25%)] train loss: 0.619
+2024-12-09 23:05:09,967 [INFO] Train Epoch: 12 [18048/62998 (29%)] train loss: 0.698
+2024-12-09 23:05:09,994 [INFO] Train Epoch: 12 [20608/62998 (33%)] train loss: 0.665
+2024-12-09 23:05:10,022 [INFO] Train Epoch: 12 [23168/62998 (37%)] train loss: 0.648
+2024-12-09 23:05:10,050 [INFO] Train Epoch: 12 [25728/62998 (41%)] train loss: 0.671
+2024-12-09 23:05:10,078 [INFO] Train Epoch: 12 [28288/62998 (45%)] train loss: 0.630
+2024-12-09 23:05:10,105 [INFO] Train Epoch: 12 [30848/62998 (49%)] train loss: 0.616
+2024-12-09 23:05:10,131 [INFO] Train Epoch: 12 [33408/62998 (53%)] train loss: 0.647
+2024-12-09 23:05:10,157 [INFO] Train Epoch: 12 [35968/62998 (57%)] train loss: 0.641
+2024-12-09 23:05:10,185 [INFO] Train Epoch: 12 [38528/62998 (61%)] train loss: 0.576
+2024-12-09 23:05:10,212 [INFO] Train Epoch: 12 [41088/62998 (65%)] train loss: 0.594
+2024-12-09 23:05:10,239 [INFO] Train Epoch: 12 [43648/62998 (69%)] train loss: 0.654
+2024-12-09 23:05:10,265 [INFO] Train Epoch: 12 [46208/62998 (73%)] train loss: 0.610
+2024-12-09 23:05:10,293 [INFO] Train Epoch: 12 [48768/62998 (77%)] train loss: 0.639
+2024-12-09 23:05:10,321 [INFO] Train Epoch: 12 [51328/62998 (82%)] train loss: 0.582
+2024-12-09 23:05:10,349 [INFO] Train Epoch: 12 [53888/62998 (86%)] train loss: 0.635
+2024-12-09 23:05:10,376 [INFO] Train Epoch: 12 [56448/62998 (90%)] train loss: 0.627
+2024-12-09 23:05:10,404 [INFO] Train Epoch: 12 [59008/62998 (94%)] train loss: 0.633
+2024-12-09 23:05:10,431 [INFO] Train Epoch: 12 [61568/62998 (98%)] train loss: 0.643
+2024-12-09 23:05:10,686 [INFO] Train Epoch: 12, val_acc: 0.890, val_f1: 0.889, val loss: 0.662
+2024-12-09 23:05:10,686 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:10,686 [INFO] Train Epoch: 12, val_acc: 0.890, val_f1: 0.889, val loss: 0.662
+2024-12-09 23:05:10,804 [INFO] Train Epoch: 13 [128/62998 (0%)] train loss: 0.627
+2024-12-09 23:05:10,833 [INFO] Train Epoch: 13 [2688/62998 (4%)] train loss: 0.618
+2024-12-09 23:05:10,860 [INFO] Train Epoch: 13 [5248/62998 (8%)] train loss: 0.643
+2024-12-09 23:05:10,887 [INFO] Train Epoch: 13 [7808/62998 (12%)] train loss: 0.652
+2024-12-09 23:05:10,914 [INFO] Train Epoch: 13 [10368/62998 (16%)] train loss: 0.655
+2024-12-09 23:05:10,941 [INFO] Train Epoch: 13 [12928/62998 (21%)] train loss: 0.601
+2024-12-09 23:05:10,970 [INFO] Train Epoch: 13 [15488/62998 (25%)] train loss: 0.592
+2024-12-09 23:05:10,998 [INFO] Train Epoch: 13 [18048/62998 (29%)] train loss: 0.628
+2024-12-09 23:05:11,026 [INFO] Train Epoch: 13 [20608/62998 (33%)] train loss: 0.663
+2024-12-09 23:05:11,053 [INFO] Train Epoch: 13 [23168/62998 (37%)] train loss: 0.629
+2024-12-09 23:05:11,081 [INFO] Train Epoch: 13 [25728/62998 (41%)] train loss: 0.655
+2024-12-09 23:05:11,108 [INFO] Train Epoch: 13 [28288/62998 (45%)] train loss: 0.641
+2024-12-09 23:05:11,133 [INFO] Train Epoch: 13 [30848/62998 (49%)] train loss: 0.668
+2024-12-09 23:05:11,160 [INFO] Train Epoch: 13 [33408/62998 (53%)] train loss: 0.625
+2024-12-09 23:05:11,187 [INFO] Train Epoch: 13 [35968/62998 (57%)] train loss: 0.641
+2024-12-09 23:05:11,213 [INFO] Train Epoch: 13 [38528/62998 (61%)] train loss: 0.608
+2024-12-09 23:05:11,241 [INFO] Train Epoch: 13 [41088/62998 (65%)] train loss: 0.566
+2024-12-09 23:05:11,268 [INFO] Train Epoch: 13 [43648/62998 (69%)] train loss: 0.630
+2024-12-09 23:05:11,295 [INFO] Train Epoch: 13 [46208/62998 (73%)] train loss: 0.667
+2024-12-09 23:05:11,323 [INFO] Train Epoch: 13 [48768/62998 (77%)] train loss: 0.666
+2024-12-09 23:05:11,350 [INFO] Train Epoch: 13 [51328/62998 (82%)] train loss: 0.689
+2024-12-09 23:05:11,377 [INFO] Train Epoch: 13 [53888/62998 (86%)] train loss: 0.618
+2024-12-09 23:05:11,404 [INFO] Train Epoch: 13 [56448/62998 (90%)] train loss: 0.597
+2024-12-09 23:05:11,431 [INFO] Train Epoch: 13 [59008/62998 (94%)] train loss: 0.659
+2024-12-09 23:05:11,459 [INFO] Train Epoch: 13 [61568/62998 (98%)] train loss: 0.612
+2024-12-09 23:05:11,704 [INFO] Train Epoch: 13, val_acc: 0.886, val_f1: 0.881, val loss: 0.664
+2024-12-09 23:05:11,704 [INFO] info: 0 num epochs without improving
+2024-12-09 23:05:11,821 [INFO] Train Epoch: 14 [128/62998 (0%)] train loss: 0.631
+2024-12-09 23:05:11,852 [INFO] Train Epoch: 14 [2688/62998 (4%)] train loss: 0.643
+2024-12-09 23:05:11,880 [INFO] Train Epoch: 14 [5248/62998 (8%)] train loss: 0.627
+2024-12-09 23:05:11,909 [INFO] Train Epoch: 14 [7808/62998 (12%)] train loss: 0.643
+2024-12-09 23:05:11,939 [INFO] Train Epoch: 14 [10368/62998 (16%)] train loss: 0.658
+2024-12-09 23:05:11,966 [INFO] Train Epoch: 14 [12928/62998 (21%)] train loss: 0.642
+2024-12-09 23:05:11,994 [INFO] Train Epoch: 14 [15488/62998 (25%)] train loss: 0.608
+2024-12-09 23:05:12,023 [INFO] Train Epoch: 14 [18048/62998 (29%)] train loss: 0.634
+2024-12-09 23:05:12,050 [INFO] Train Epoch: 14 [20608/62998 (33%)] train loss: 0.631
+2024-12-09 23:05:12,077 [INFO] Train Epoch: 14 [23168/62998 (37%)] train loss: 0.619
+2024-12-09 23:05:12,105 [INFO] Train Epoch: 14 [25728/62998 (41%)] train loss: 0.611
+2024-12-09 23:05:12,133 [INFO] Train Epoch: 14 [28288/62998 (45%)] train loss: 0.629
+2024-12-09 23:05:12,160 [INFO] Train Epoch: 14 [30848/62998 (49%)] train loss: 0.620
+2024-12-09 23:05:12,188 [INFO] Train Epoch: 14 [33408/62998 (53%)] train loss: 0.636
+2024-12-09 23:05:12,215 [INFO] Train Epoch: 14 [35968/62998 (57%)] train loss: 0.610
+2024-12-09 23:05:12,241 [INFO] Train Epoch: 14 [38528/62998 (61%)] train loss: 0.636
+2024-12-09 23:05:12,268 [INFO] Train Epoch: 14 [41088/62998 (65%)] train loss: 0.570
+2024-12-09 23:05:12,295 [INFO] Train Epoch: 14 [43648/62998 (69%)] train loss: 0.617
+2024-12-09 23:05:12,323 [INFO] Train Epoch: 14 [46208/62998 (73%)] train loss: 0.573
+2024-12-09 23:05:12,350 [INFO] Train Epoch: 14 [48768/62998 (77%)] train loss: 0.751
+2024-12-09 23:05:12,377 [INFO] Train Epoch: 14 [51328/62998 (82%)] train loss: 0.637
+2024-12-09 23:05:12,404 [INFO] Train Epoch: 14 [53888/62998 (86%)] train loss: 0.657
+2024-12-09 23:05:12,431 [INFO] Train Epoch: 14 [56448/62998 (90%)] train loss: 0.681
+2024-12-09 23:05:12,459 [INFO] Train Epoch: 14 [59008/62998 (94%)] train loss: 0.600
+2024-12-09 23:05:12,487 [INFO] Train Epoch: 14 [61568/62998 (98%)] train loss: 0.654
+2024-12-09 23:05:12,726 [INFO] Train Epoch: 14, val_acc: 0.892, val_f1: 0.886, val loss: 0.662
+2024-12-09 23:05:12,726 [INFO] info: 1 num epochs without improving
+2024-12-09 23:05:12,851 [INFO] Train Epoch: 15 [128/62998 (0%)] train loss: 0.642
+2024-12-09 23:05:12,897 [INFO] Train Epoch: 15 [2688/62998 (4%)] train loss: 0.613
+2024-12-09 23:05:12,925 [INFO] Train Epoch: 15 [5248/62998 (8%)] train loss: 0.669
+2024-12-09 23:05:12,953 [INFO] Train Epoch: 15 [7808/62998 (12%)] train loss: 0.681
+2024-12-09 23:05:12,980 [INFO] Train Epoch: 15 [10368/62998 (16%)] train loss: 0.588
+2024-12-09 23:05:13,009 [INFO] Train Epoch: 15 [12928/62998 (21%)] train loss: 0.725
+2024-12-09 23:05:13,037 [INFO] Train Epoch: 15 [15488/62998 (25%)] train loss: 0.671
+2024-12-09 23:05:13,065 [INFO] Train Epoch: 15 [18048/62998 (29%)] train loss: 0.637
+2024-12-09 23:05:13,094 [INFO] Train Epoch: 15 [20608/62998 (33%)] train loss: 0.578
+2024-12-09 23:05:13,121 [INFO] Train Epoch: 15 [23168/62998 (37%)] train loss: 0.634
+2024-12-09 23:05:13,151 [INFO] Train Epoch: 15 [25728/62998 (41%)] train loss: 0.639
+2024-12-09 23:05:13,178 [INFO] Train Epoch: 15 [28288/62998 (45%)] train loss: 0.586
+2024-12-09 23:05:13,207 [INFO] Train Epoch: 15 [30848/62998 (49%)] train loss: 0.663
+2024-12-09 23:05:13,234 [INFO] Train Epoch: 15 [33408/62998 (53%)] train loss: 0.670
+2024-12-09 23:05:13,261 [INFO] Train Epoch: 15 [35968/62998 (57%)] train loss: 0.620
+2024-12-09 23:05:13,290 [INFO] Train Epoch: 15 [38528/62998 (61%)] train loss: 0.658
+2024-12-09 23:05:13,317 [INFO] Train Epoch: 15 [41088/62998 (65%)] train loss: 0.717
+2024-12-09 23:05:13,346 [INFO] Train Epoch: 15 [43648/62998 (69%)] train loss: 0.693
+2024-12-09 23:05:13,373 [INFO] Train Epoch: 15 [46208/62998 (73%)] train loss: 0.763
+2024-12-09 23:05:13,400 [INFO] Train Epoch: 15 [48768/62998 (77%)] train loss: 0.690
+2024-12-09 23:05:13,428 [INFO] Train Epoch: 15 [51328/62998 (82%)] train loss: 0.683
+2024-12-09 23:05:13,456 [INFO] Train Epoch: 15 [53888/62998 (86%)] train loss: 0.555
+2024-12-09 23:05:13,484 [INFO] Train Epoch: 15 [56448/62998 (90%)] train loss: 0.600
+2024-12-09 23:05:13,512 [INFO] Train Epoch: 15 [59008/62998 (94%)] train loss: 0.603
+2024-12-09 23:05:13,540 [INFO] Train Epoch: 15 [61568/62998 (98%)] train loss: 0.624
+2024-12-09 23:05:13,779 [INFO] Train Epoch: 15, val_acc: 0.897, val_f1: 0.895, val loss: 0.655
+2024-12-09 23:05:13,779 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:13,779 [INFO] Train Epoch: 15, val_acc: 0.897, val_f1: 0.895, val loss: 0.655
+2024-12-09 23:05:13,893 [INFO] Train Epoch: 16 [128/62998 (0%)] train loss: 0.691
+2024-12-09 23:05:13,921 [INFO] Train Epoch: 16 [2688/62998 (4%)] train loss: 0.664
+2024-12-09 23:05:13,948 [INFO] Train Epoch: 16 [5248/62998 (8%)] train loss: 0.701
+2024-12-09 23:05:13,975 [INFO] Train Epoch: 16 [7808/62998 (12%)] train loss: 0.593
+2024-12-09 23:05:14,003 [INFO] Train Epoch: 16 [10368/62998 (16%)] train loss: 0.670
+2024-12-09 23:05:14,030 [INFO] Train Epoch: 16 [12928/62998 (21%)] train loss: 0.685
+2024-12-09 23:05:14,058 [INFO] Train Epoch: 16 [15488/62998 (25%)] train loss: 0.693
+2024-12-09 23:05:14,102 [INFO] Train Epoch: 16 [18048/62998 (29%)] train loss: 0.709
+2024-12-09 23:05:14,130 [INFO] Train Epoch: 16 [20608/62998 (33%)] train loss: 0.620
+2024-12-09 23:05:14,156 [INFO] Train Epoch: 16 [23168/62998 (37%)] train loss: 0.599
+2024-12-09 23:05:14,184 [INFO] Train Epoch: 16 [25728/62998 (41%)] train loss: 0.655
+2024-12-09 23:05:14,211 [INFO] Train Epoch: 16 [28288/62998 (45%)] train loss: 0.660
+2024-12-09 23:05:14,238 [INFO] Train Epoch: 16 [30848/62998 (49%)] train loss: 0.642
+2024-12-09 23:05:14,266 [INFO] Train Epoch: 16 [33408/62998 (53%)] train loss: 0.662
+2024-12-09 23:05:14,293 [INFO] Train Epoch: 16 [35968/62998 (57%)] train loss: 0.601
+2024-12-09 23:05:14,321 [INFO] Train Epoch: 16 [38528/62998 (61%)] train loss: 0.641
+2024-12-09 23:05:14,350 [INFO] Train Epoch: 16 [41088/62998 (65%)] train loss: 0.672
+2024-12-09 23:05:14,378 [INFO] Train Epoch: 16 [43648/62998 (69%)] train loss: 0.621
+2024-12-09 23:05:14,405 [INFO] Train Epoch: 16 [46208/62998 (73%)] train loss: 0.632
+2024-12-09 23:05:14,432 [INFO] Train Epoch: 16 [48768/62998 (77%)] train loss: 0.618
+2024-12-09 23:05:14,459 [INFO] Train Epoch: 16 [51328/62998 (82%)] train loss: 0.648
+2024-12-09 23:05:14,487 [INFO] Train Epoch: 16 [53888/62998 (86%)] train loss: 0.566
+2024-12-09 23:05:14,514 [INFO] Train Epoch: 16 [56448/62998 (90%)] train loss: 0.609
+2024-12-09 23:05:14,541 [INFO] Train Epoch: 16 [59008/62998 (94%)] train loss: 0.598
+2024-12-09 23:05:14,569 [INFO] Train Epoch: 16 [61568/62998 (98%)] train loss: 0.601
+2024-12-09 23:05:14,822 [INFO] Train Epoch: 16, val_acc: 0.888, val_f1: 0.888, val loss: 0.661
+2024-12-09 23:05:14,823 [INFO] info: 0 num epochs without improving
+2024-12-09 23:05:14,945 [INFO] Train Epoch: 17 [128/62998 (0%)] train loss: 0.681
+2024-12-09 23:05:14,973 [INFO] Train Epoch: 17 [2688/62998 (4%)] train loss: 0.688
+2024-12-09 23:05:15,000 [INFO] Train Epoch: 17 [5248/62998 (8%)] train loss: 0.658
+2024-12-09 23:05:15,029 [INFO] Train Epoch: 17 [7808/62998 (12%)] train loss: 0.577
+2024-12-09 23:05:15,056 [INFO] Train Epoch: 17 [10368/62998 (16%)] train loss: 0.642
+2024-12-09 23:05:15,084 [INFO] Train Epoch: 17 [12928/62998 (21%)] train loss: 0.579
+2024-12-09 23:05:15,112 [INFO] Train Epoch: 17 [15488/62998 (25%)] train loss: 0.707
+2024-12-09 23:05:15,141 [INFO] Train Epoch: 17 [18048/62998 (29%)] train loss: 0.610
+2024-12-09 23:05:15,168 [INFO] Train Epoch: 17 [20608/62998 (33%)] train loss: 0.713
+2024-12-09 23:05:15,196 [INFO] Train Epoch: 17 [23168/62998 (37%)] train loss: 0.613
+2024-12-09 23:05:15,225 [INFO] Train Epoch: 17 [25728/62998 (41%)] train loss: 0.615
+2024-12-09 23:05:15,253 [INFO] Train Epoch: 17 [28288/62998 (45%)] train loss: 0.622
+2024-12-09 23:05:15,280 [INFO] Train Epoch: 17 [30848/62998 (49%)] train loss: 0.616
+2024-12-09 23:05:15,307 [INFO] Train Epoch: 17 [33408/62998 (53%)] train loss: 0.616
+2024-12-09 23:05:15,335 [INFO] Train Epoch: 17 [35968/62998 (57%)] train loss: 0.648
+2024-12-09 23:05:15,363 [INFO] Train Epoch: 17 [38528/62998 (61%)] train loss: 0.618
+2024-12-09 23:05:15,391 [INFO] Train Epoch: 17 [41088/62998 (65%)] train loss: 0.687
+2024-12-09 23:05:15,418 [INFO] Train Epoch: 17 [43648/62998 (69%)] train loss: 0.597
+2024-12-09 23:05:15,445 [INFO] Train Epoch: 17 [46208/62998 (73%)] train loss: 0.672
+2024-12-09 23:05:15,473 [INFO] Train Epoch: 17 [48768/62998 (77%)] train loss: 0.621
+2024-12-09 23:05:15,500 [INFO] Train Epoch: 17 [51328/62998 (82%)] train loss: 0.600
+2024-12-09 23:05:15,528 [INFO] Train Epoch: 17 [53888/62998 (86%)] train loss: 0.622
+2024-12-09 23:05:15,556 [INFO] Train Epoch: 17 [56448/62998 (90%)] train loss: 0.645
+2024-12-09 23:05:15,584 [INFO] Train Epoch: 17 [59008/62998 (94%)] train loss: 0.614
+2024-12-09 23:05:15,612 [INFO] Train Epoch: 17 [61568/62998 (98%)] train loss: 0.647
+2024-12-09 23:05:15,858 [INFO] Train Epoch: 17, val_acc: 0.898, val_f1: 0.897, val loss: 0.646
+2024-12-09 23:05:15,858 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:15,859 [INFO] Train Epoch: 17, val_acc: 0.898, val_f1: 0.897, val loss: 0.646
+2024-12-09 23:05:15,984 [INFO] Train Epoch: 18 [128/62998 (0%)] train loss: 0.633
+2024-12-09 23:05:16,014 [INFO] Train Epoch: 18 [2688/62998 (4%)] train loss: 0.631
+2024-12-09 23:05:16,042 [INFO] Train Epoch: 18 [5248/62998 (8%)] train loss: 0.623
+2024-12-09 23:05:16,070 [INFO] Train Epoch: 18 [7808/62998 (12%)] train loss: 0.595
+2024-12-09 23:05:16,098 [INFO] Train Epoch: 18 [10368/62998 (16%)] train loss: 0.645
+2024-12-09 23:05:16,128 [INFO] Train Epoch: 18 [12928/62998 (21%)] train loss: 0.606
+2024-12-09 23:05:16,155 [INFO] Train Epoch: 18 [15488/62998 (25%)] train loss: 0.638
+2024-12-09 23:05:16,183 [INFO] Train Epoch: 18 [18048/62998 (29%)] train loss: 0.605
+2024-12-09 23:05:16,211 [INFO] Train Epoch: 18 [20608/62998 (33%)] train loss: 0.636
+2024-12-09 23:05:16,238 [INFO] Train Epoch: 18 [23168/62998 (37%)] train loss: 0.668
+2024-12-09 23:05:16,267 [INFO] Train Epoch: 18 [25728/62998 (41%)] train loss: 0.633
+2024-12-09 23:05:16,296 [INFO] Train Epoch: 18 [28288/62998 (45%)] train loss: 0.632
+2024-12-09 23:05:16,324 [INFO] Train Epoch: 18 [30848/62998 (49%)] train loss: 0.640
+2024-12-09 23:05:16,354 [INFO] Train Epoch: 18 [33408/62998 (53%)] train loss: 0.608
+2024-12-09 23:05:16,381 [INFO] Train Epoch: 18 [35968/62998 (57%)] train loss: 0.596
+2024-12-09 23:05:16,410 [INFO] Train Epoch: 18 [38528/62998 (61%)] train loss: 0.616
+2024-12-09 23:05:16,438 [INFO] Train Epoch: 18 [41088/62998 (65%)] train loss: 0.634
+2024-12-09 23:05:16,466 [INFO] Train Epoch: 18 [43648/62998 (69%)] train loss: 0.610
+2024-12-09 23:05:16,495 [INFO] Train Epoch: 18 [46208/62998 (73%)] train loss: 0.647
+2024-12-09 23:05:16,523 [INFO] Train Epoch: 18 [48768/62998 (77%)] train loss: 0.623
+2024-12-09 23:05:16,552 [INFO] Train Epoch: 18 [51328/62998 (82%)] train loss: 0.635
+2024-12-09 23:05:16,579 [INFO] Train Epoch: 18 [53888/62998 (86%)] train loss: 0.694
+2024-12-09 23:05:16,606 [INFO] Train Epoch: 18 [56448/62998 (90%)] train loss: 0.684
+2024-12-09 23:05:16,633 [INFO] Train Epoch: 18 [59008/62998 (94%)] train loss: 0.590
+2024-12-09 23:05:16,661 [INFO] Train Epoch: 18 [61568/62998 (98%)] train loss: 0.606
+2024-12-09 23:05:16,900 [INFO] Train Epoch: 18, val_acc: 0.897, val_f1: 0.895, val loss: 0.649
+2024-12-09 23:05:16,901 [INFO] info: 0 num epochs without improving
+2024-12-09 23:05:17,017 [INFO] Train Epoch: 19 [128/62998 (0%)] train loss: 0.640
+2024-12-09 23:05:17,048 [INFO] Train Epoch: 19 [2688/62998 (4%)] train loss: 0.656
+2024-12-09 23:05:17,076 [INFO] Train Epoch: 19 [5248/62998 (8%)] train loss: 0.643
+2024-12-09 23:05:17,103 [INFO] Train Epoch: 19 [7808/62998 (12%)] train loss: 0.635
+2024-12-09 23:05:17,132 [INFO] Train Epoch: 19 [10368/62998 (16%)] train loss: 0.592
+2024-12-09 23:05:17,161 [INFO] Train Epoch: 19 [12928/62998 (21%)] train loss: 0.604
+2024-12-09 23:05:17,188 [INFO] Train Epoch: 19 [15488/62998 (25%)] train loss: 0.646
+2024-12-09 23:05:17,215 [INFO] Train Epoch: 19 [18048/62998 (29%)] train loss: 0.659
+2024-12-09 23:05:17,242 [INFO] Train Epoch: 19 [20608/62998 (33%)] train loss: 0.616
+2024-12-09 23:05:17,269 [INFO] Train Epoch: 19 [23168/62998 (37%)] train loss: 0.632
+2024-12-09 23:05:17,296 [INFO] Train Epoch: 19 [25728/62998 (41%)] train loss: 0.603
+2024-12-09 23:05:17,323 [INFO] Train Epoch: 19 [28288/62998 (45%)] train loss: 0.599
+2024-12-09 23:05:17,364 [INFO] Train Epoch: 19 [30848/62998 (49%)] train loss: 0.602
+2024-12-09 23:05:17,392 [INFO] Train Epoch: 19 [33408/62998 (53%)] train loss: 0.670
+2024-12-09 23:05:17,421 [INFO] Train Epoch: 19 [35968/62998 (57%)] train loss: 0.589
+2024-12-09 23:05:17,449 [INFO] Train Epoch: 19 [38528/62998 (61%)] train loss: 0.622
+2024-12-09 23:05:17,476 [INFO] Train Epoch: 19 [41088/62998 (65%)] train loss: 0.640
+2024-12-09 23:05:17,502 [INFO] Train Epoch: 19 [43648/62998 (69%)] train loss: 0.627
+2024-12-09 23:05:17,531 [INFO] Train Epoch: 19 [46208/62998 (73%)] train loss: 0.636
+2024-12-09 23:05:17,558 [INFO] Train Epoch: 19 [48768/62998 (77%)] train loss: 0.646
+2024-12-09 23:05:17,586 [INFO] Train Epoch: 19 [51328/62998 (82%)] train loss: 0.670
+2024-12-09 23:05:17,613 [INFO] Train Epoch: 19 [53888/62998 (86%)] train loss: 0.602
+2024-12-09 23:05:17,641 [INFO] Train Epoch: 19 [56448/62998 (90%)] train loss: 0.649
+2024-12-09 23:05:17,666 [INFO] Train Epoch: 19 [59008/62998 (94%)] train loss: 0.608
+2024-12-09 23:05:17,696 [INFO] Train Epoch: 19 [61568/62998 (98%)] train loss: 0.585
+2024-12-09 23:05:17,952 [INFO] Train Epoch: 19, val_acc: 0.901, val_f1: 0.898, val loss: 0.644
+2024-12-09 23:05:17,952 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:17,952 [INFO] Train Epoch: 19, val_acc: 0.901, val_f1: 0.898, val loss: 0.644
+2024-12-09 23:05:18,087 [INFO] Train Epoch: 20 [128/62998 (0%)] train loss: 0.600
+2024-12-09 23:05:18,118 [INFO] Train Epoch: 20 [2688/62998 (4%)] train loss: 0.660
+2024-12-09 23:05:18,149 [INFO] Train Epoch: 20 [5248/62998 (8%)] train loss: 0.640
+2024-12-09 23:05:18,178 [INFO] Train Epoch: 20 [7808/62998 (12%)] train loss: 0.670
+2024-12-09 23:05:18,206 [INFO] Train Epoch: 20 [10368/62998 (16%)] train loss: 0.583
+2024-12-09 23:05:18,234 [INFO] Train Epoch: 20 [12928/62998 (21%)] train loss: 0.581
+2024-12-09 23:05:18,263 [INFO] Train Epoch: 20 [15488/62998 (25%)] train loss: 0.597
+2024-12-09 23:05:18,290 [INFO] Train Epoch: 20 [18048/62998 (29%)] train loss: 0.675
+2024-12-09 23:05:18,317 [INFO] Train Epoch: 20 [20608/62998 (33%)] train loss: 0.622
+2024-12-09 23:05:18,344 [INFO] Train Epoch: 20 [23168/62998 (37%)] train loss: 0.632
+2024-12-09 23:05:18,372 [INFO] Train Epoch: 20 [25728/62998 (41%)] train loss: 0.586
+2024-12-09 23:05:18,400 [INFO] Train Epoch: 20 [28288/62998 (45%)] train loss: 0.632
+2024-12-09 23:05:18,428 [INFO] Train Epoch: 20 [30848/62998 (49%)] train loss: 0.644
+2024-12-09 23:05:18,456 [INFO] Train Epoch: 20 [33408/62998 (53%)] train loss: 0.604
+2024-12-09 23:05:18,484 [INFO] Train Epoch: 20 [35968/62998 (57%)] train loss: 0.621
+2024-12-09 23:05:18,510 [INFO] Train Epoch: 20 [38528/62998 (61%)] train loss: 0.619
+2024-12-09 23:05:18,538 [INFO] Train Epoch: 20 [41088/62998 (65%)] train loss: 0.609
+2024-12-09 23:05:18,566 [INFO] Train Epoch: 20 [43648/62998 (69%)] train loss: 0.590
+2024-12-09 23:05:18,594 [INFO] Train Epoch: 20 [46208/62998 (73%)] train loss: 0.669
+2024-12-09 23:05:18,622 [INFO] Train Epoch: 20 [48768/62998 (77%)] train loss: 0.586
+2024-12-09 23:05:18,651 [INFO] Train Epoch: 20 [51328/62998 (82%)] train loss: 0.595
+2024-12-09 23:05:18,678 [INFO] Train Epoch: 20 [53888/62998 (86%)] train loss: 0.586
+2024-12-09 23:05:18,704 [INFO] Train Epoch: 20 [56448/62998 (90%)] train loss: 0.574
+2024-12-09 23:05:18,732 [INFO] Train Epoch: 20 [59008/62998 (94%)] train loss: 0.642
+2024-12-09 23:05:18,761 [INFO] Train Epoch: 20 [61568/62998 (98%)] train loss: 0.623
+2024-12-09 23:05:19,012 [INFO] Train Epoch: 20, val_acc: 0.900, val_f1: 0.899, val loss: 0.645
+2024-12-09 23:05:19,012 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:19,012 [INFO] Train Epoch: 20, val_acc: 0.900, val_f1: 0.899, val loss: 0.645
+2024-12-09 23:05:19,146 [INFO] Train Epoch: 21 [128/62998 (0%)] train loss: 0.630
+2024-12-09 23:05:19,175 [INFO] Train Epoch: 21 [2688/62998 (4%)] train loss: 0.620
+2024-12-09 23:05:19,202 [INFO] Train Epoch: 21 [5248/62998 (8%)] train loss: 0.606
+2024-12-09 23:05:19,229 [INFO] Train Epoch: 21 [7808/62998 (12%)] train loss: 0.591
+2024-12-09 23:05:19,256 [INFO] Train Epoch: 21 [10368/62998 (16%)] train loss: 0.625
+2024-12-09 23:05:19,282 [INFO] Train Epoch: 21 [12928/62998 (21%)] train loss: 0.636
+2024-12-09 23:05:19,310 [INFO] Train Epoch: 21 [15488/62998 (25%)] train loss: 0.631
+2024-12-09 23:05:19,338 [INFO] Train Epoch: 21 [18048/62998 (29%)] train loss: 0.574
+2024-12-09 23:05:19,366 [INFO] Train Epoch: 21 [20608/62998 (33%)] train loss: 0.619
+2024-12-09 23:05:19,395 [INFO] Train Epoch: 21 [23168/62998 (37%)] train loss: 0.611
+2024-12-09 23:05:19,423 [INFO] Train Epoch: 21 [25728/62998 (41%)] train loss: 0.617
+2024-12-09 23:05:19,450 [INFO] Train Epoch: 21 [28288/62998 (45%)] train loss: 0.608
+2024-12-09 23:05:19,476 [INFO] Train Epoch: 21 [30848/62998 (49%)] train loss: 0.661
+2024-12-09 23:05:19,504 [INFO] Train Epoch: 21 [33408/62998 (53%)] train loss: 0.630
+2024-12-09 23:05:19,532 [INFO] Train Epoch: 21 [35968/62998 (57%)] train loss: 0.594
+2024-12-09 23:05:19,559 [INFO] Train Epoch: 21 [38528/62998 (61%)] train loss: 0.592
+2024-12-09 23:05:19,587 [INFO] Train Epoch: 21 [41088/62998 (65%)] train loss: 0.644
+2024-12-09 23:05:19,613 [INFO] Train Epoch: 21 [43648/62998 (69%)] train loss: 0.599
+2024-12-09 23:05:19,640 [INFO] Train Epoch: 21 [46208/62998 (73%)] train loss: 0.610
+2024-12-09 23:05:19,667 [INFO] Train Epoch: 21 [48768/62998 (77%)] train loss: 0.585
+2024-12-09 23:05:19,695 [INFO] Train Epoch: 21 [51328/62998 (82%)] train loss: 0.607
+2024-12-09 23:05:19,722 [INFO] Train Epoch: 21 [53888/62998 (86%)] train loss: 0.567
+2024-12-09 23:05:19,748 [INFO] Train Epoch: 21 [56448/62998 (90%)] train loss: 0.607
+2024-12-09 23:05:19,776 [INFO] Train Epoch: 21 [59008/62998 (94%)] train loss: 0.643
+2024-12-09 23:05:19,803 [INFO] Train Epoch: 21 [61568/62998 (98%)] train loss: 0.654
+2024-12-09 23:05:20,039 [INFO] Train Epoch: 21, val_acc: 0.902, val_f1: 0.898, val loss: 0.640
+2024-12-09 23:05:20,039 [INFO] info: 0 num epochs without improving
+2024-12-09 23:05:20,174 [INFO] Train Epoch: 22 [128/62998 (0%)] train loss: 0.572
+2024-12-09 23:05:20,205 [INFO] Train Epoch: 22 [2688/62998 (4%)] train loss: 0.612
+2024-12-09 23:05:20,233 [INFO] Train Epoch: 22 [5248/62998 (8%)] train loss: 0.620
+2024-12-09 23:05:20,261 [INFO] Train Epoch: 22 [7808/62998 (12%)] train loss: 0.642
+2024-12-09 23:05:20,289 [INFO] Train Epoch: 22 [10368/62998 (16%)] train loss: 0.624
+2024-12-09 23:05:20,317 [INFO] Train Epoch: 22 [12928/62998 (21%)] train loss: 0.657
+2024-12-09 23:05:20,344 [INFO] Train Epoch: 22 [15488/62998 (25%)] train loss: 0.602
+2024-12-09 23:05:20,371 [INFO] Train Epoch: 22 [18048/62998 (29%)] train loss: 0.595
+2024-12-09 23:05:20,399 [INFO] Train Epoch: 22 [20608/62998 (33%)] train loss: 0.689
+2024-12-09 23:05:20,442 [INFO] Train Epoch: 22 [23168/62998 (37%)] train loss: 0.607
+2024-12-09 23:05:20,469 [INFO] Train Epoch: 22 [25728/62998 (41%)] train loss: 0.649
+2024-12-09 23:05:20,498 [INFO] Train Epoch: 22 [28288/62998 (45%)] train loss: 0.666
+2024-12-09 23:05:20,527 [INFO] Train Epoch: 22 [30848/62998 (49%)] train loss: 0.694
+2024-12-09 23:05:20,556 [INFO] Train Epoch: 22 [33408/62998 (53%)] train loss: 0.644
+2024-12-09 23:05:20,584 [INFO] Train Epoch: 22 [35968/62998 (57%)] train loss: 0.622
+2024-12-09 23:05:20,611 [INFO] Train Epoch: 22 [38528/62998 (61%)] train loss: 0.643
+2024-12-09 23:05:20,638 [INFO] Train Epoch: 22 [41088/62998 (65%)] train loss: 0.623
+2024-12-09 23:05:20,665 [INFO] Train Epoch: 22 [43648/62998 (69%)] train loss: 0.575
+2024-12-09 23:05:20,693 [INFO] Train Epoch: 22 [46208/62998 (73%)] train loss: 0.589
+2024-12-09 23:05:20,722 [INFO] Train Epoch: 22 [48768/62998 (77%)] train loss: 0.665
+2024-12-09 23:05:20,749 [INFO] Train Epoch: 22 [51328/62998 (82%)] train loss: 0.615
+2024-12-09 23:05:20,778 [INFO] Train Epoch: 22 [53888/62998 (86%)] train loss: 0.637
+2024-12-09 23:05:20,804 [INFO] Train Epoch: 22 [56448/62998 (90%)] train loss: 0.600
+2024-12-09 23:05:20,831 [INFO] Train Epoch: 22 [59008/62998 (94%)] train loss: 0.580
+2024-12-09 23:05:20,858 [INFO] Train Epoch: 22 [61568/62998 (98%)] train loss: 0.612
+2024-12-09 23:05:21,096 [INFO] Train Epoch: 22, val_acc: 0.901, val_f1: 0.900, val loss: 0.642
+2024-12-09 23:05:21,096 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:21,097 [INFO] Train Epoch: 22, val_acc: 0.901, val_f1: 0.900, val loss: 0.642
+2024-12-09 23:05:21,217 [INFO] Train Epoch: 23 [128/62998 (0%)] train loss: 0.581
+2024-12-09 23:05:21,260 [INFO] Train Epoch: 23 [2688/62998 (4%)] train loss: 0.670
+2024-12-09 23:05:21,288 [INFO] Train Epoch: 23 [5248/62998 (8%)] train loss: 0.675
+2024-12-09 23:05:21,316 [INFO] Train Epoch: 23 [7808/62998 (12%)] train loss: 0.544
+2024-12-09 23:05:21,345 [INFO] Train Epoch: 23 [10368/62998 (16%)] train loss: 0.583
+2024-12-09 23:05:21,374 [INFO] Train Epoch: 23 [12928/62998 (21%)] train loss: 0.632
+2024-12-09 23:05:21,401 [INFO] Train Epoch: 23 [15488/62998 (25%)] train loss: 0.620
+2024-12-09 23:05:21,429 [INFO] Train Epoch: 23 [18048/62998 (29%)] train loss: 0.560
+2024-12-09 23:05:21,457 [INFO] Train Epoch: 23 [20608/62998 (33%)] train loss: 0.690
+2024-12-09 23:05:21,484 [INFO] Train Epoch: 23 [23168/62998 (37%)] train loss: 0.670
+2024-12-09 23:05:21,511 [INFO] Train Epoch: 23 [25728/62998 (41%)] train loss: 0.625
+2024-12-09 23:05:21,539 [INFO] Train Epoch: 23 [28288/62998 (45%)] train loss: 0.614
+2024-12-09 23:05:21,565 [INFO] Train Epoch: 23 [30848/62998 (49%)] train loss: 0.617
+2024-12-09 23:05:21,592 [INFO] Train Epoch: 23 [33408/62998 (53%)] train loss: 0.656
+2024-12-09 23:05:21,619 [INFO] Train Epoch: 23 [35968/62998 (57%)] train loss: 0.683
+2024-12-09 23:05:21,646 [INFO] Train Epoch: 23 [38528/62998 (61%)] train loss: 0.618
+2024-12-09 23:05:21,674 [INFO] Train Epoch: 23 [41088/62998 (65%)] train loss: 0.713
+2024-12-09 23:05:21,701 [INFO] Train Epoch: 23 [43648/62998 (69%)] train loss: 0.659
+2024-12-09 23:05:21,729 [INFO] Train Epoch: 23 [46208/62998 (73%)] train loss: 0.634
+2024-12-09 23:05:21,757 [INFO] Train Epoch: 23 [48768/62998 (77%)] train loss: 0.660
+2024-12-09 23:05:21,784 [INFO] Train Epoch: 23 [51328/62998 (82%)] train loss: 0.705
+2024-12-09 23:05:21,811 [INFO] Train Epoch: 23 [53888/62998 (86%)] train loss: 0.630
+2024-12-09 23:05:21,838 [INFO] Train Epoch: 23 [56448/62998 (90%)] train loss: 0.647
+2024-12-09 23:05:21,867 [INFO] Train Epoch: 23 [59008/62998 (94%)] train loss: 0.605
+2024-12-09 23:05:21,895 [INFO] Train Epoch: 23 [61568/62998 (98%)] train loss: 0.608
+2024-12-09 23:05:22,147 [INFO] Train Epoch: 23, val_acc: 0.902, val_f1: 0.897, val loss: 0.644
+2024-12-09 23:05:22,147 [INFO] info: 0 num epochs without improving
+2024-12-09 23:05:22,274 [INFO] Train Epoch: 24 [128/62998 (0%)] train loss: 0.693
+2024-12-09 23:05:22,301 [INFO] Train Epoch: 24 [2688/62998 (4%)] train loss: 0.642
+2024-12-09 23:05:22,328 [INFO] Train Epoch: 24 [5248/62998 (8%)] train loss: 0.603
+2024-12-09 23:05:22,357 [INFO] Train Epoch: 24 [7808/62998 (12%)] train loss: 0.653
+2024-12-09 23:05:22,384 [INFO] Train Epoch: 24 [10368/62998 (16%)] train loss: 0.592
+2024-12-09 23:05:22,411 [INFO] Train Epoch: 24 [12928/62998 (21%)] train loss: 0.608
+2024-12-09 23:05:22,439 [INFO] Train Epoch: 24 [15488/62998 (25%)] train loss: 0.658
+2024-12-09 23:05:22,465 [INFO] Train Epoch: 24 [18048/62998 (29%)] train loss: 0.617
+2024-12-09 23:05:22,494 [INFO] Train Epoch: 24 [20608/62998 (33%)] train loss: 0.569
+2024-12-09 23:05:22,521 [INFO] Train Epoch: 24 [23168/62998 (37%)] train loss: 0.666
+2024-12-09 23:05:22,548 [INFO] Train Epoch: 24 [25728/62998 (41%)] train loss: 0.608
+2024-12-09 23:05:22,575 [INFO] Train Epoch: 24 [28288/62998 (45%)] train loss: 0.694
+2024-12-09 23:05:22,601 [INFO] Train Epoch: 24 [30848/62998 (49%)] train loss: 0.599
+2024-12-09 23:05:22,628 [INFO] Train Epoch: 24 [33408/62998 (53%)] train loss: 0.616
+2024-12-09 23:05:22,656 [INFO] Train Epoch: 24 [35968/62998 (57%)] train loss: 0.641
+2024-12-09 23:05:22,685 [INFO] Train Epoch: 24 [38528/62998 (61%)] train loss: 0.602
+2024-12-09 23:05:22,712 [INFO] Train Epoch: 24 [41088/62998 (65%)] train loss: 0.638
+2024-12-09 23:05:22,739 [INFO] Train Epoch: 24 [43648/62998 (69%)] train loss: 0.612
+2024-12-09 23:05:22,765 [INFO] Train Epoch: 24 [46208/62998 (73%)] train loss: 0.657
+2024-12-09 23:05:22,794 [INFO] Train Epoch: 24 [48768/62998 (77%)] train loss: 0.707
+2024-12-09 23:05:22,821 [INFO] Train Epoch: 24 [51328/62998 (82%)] train loss: 0.631
+2024-12-09 23:05:22,848 [INFO] Train Epoch: 24 [53888/62998 (86%)] train loss: 0.693
+2024-12-09 23:05:22,875 [INFO] Train Epoch: 24 [56448/62998 (90%)] train loss: 0.621
+2024-12-09 23:05:22,901 [INFO] Train Epoch: 24 [59008/62998 (94%)] train loss: 0.602
+2024-12-09 23:05:22,928 [INFO] Train Epoch: 24 [61568/62998 (98%)] train loss: 0.603
+2024-12-09 23:05:23,174 [INFO] Train Epoch: 24, val_acc: 0.906, val_f1: 0.902, val loss: 0.638
+2024-12-09 23:05:23,174 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:23,175 [INFO] Train Epoch: 24, val_acc: 0.906, val_f1: 0.902, val loss: 0.638
+2024-12-09 23:05:23,313 [INFO] Train Epoch: 25 [128/62998 (0%)] train loss: 0.580
+2024-12-09 23:05:23,341 [INFO] Train Epoch: 25 [2688/62998 (4%)] train loss: 0.637
+2024-12-09 23:05:23,367 [INFO] Train Epoch: 25 [5248/62998 (8%)] train loss: 0.616
+2024-12-09 23:05:23,395 [INFO] Train Epoch: 25 [7808/62998 (12%)] train loss: 0.643
+2024-12-09 23:05:23,423 [INFO] Train Epoch: 25 [10368/62998 (16%)] train loss: 0.623
+2024-12-09 23:05:23,449 [INFO] Train Epoch: 25 [12928/62998 (21%)] train loss: 0.573
+2024-12-09 23:05:23,476 [INFO] Train Epoch: 25 [15488/62998 (25%)] train loss: 0.632
+2024-12-09 23:05:23,503 [INFO] Train Epoch: 25 [18048/62998 (29%)] train loss: 0.605
+2024-12-09 23:05:23,531 [INFO] Train Epoch: 25 [20608/62998 (33%)] train loss: 0.682
+2024-12-09 23:05:23,558 [INFO] Train Epoch: 25 [23168/62998 (37%)] train loss: 0.635
+2024-12-09 23:05:23,585 [INFO] Train Epoch: 25 [25728/62998 (41%)] train loss: 0.610
+2024-12-09 23:05:23,612 [INFO] Train Epoch: 25 [28288/62998 (45%)] train loss: 0.600
+2024-12-09 23:05:23,659 [INFO] Train Epoch: 25 [30848/62998 (49%)] train loss: 0.677
+2024-12-09 23:05:23,690 [INFO] Train Epoch: 25 [33408/62998 (53%)] train loss: 0.615
+2024-12-09 23:05:23,716 [INFO] Train Epoch: 25 [35968/62998 (57%)] train loss: 0.614
+2024-12-09 23:05:23,745 [INFO] Train Epoch: 25 [38528/62998 (61%)] train loss: 0.630
+2024-12-09 23:05:23,773 [INFO] Train Epoch: 25 [41088/62998 (65%)] train loss: 0.600
+2024-12-09 23:05:23,814 [INFO] Train Epoch: 25 [43648/62998 (69%)] train loss: 0.634
+2024-12-09 23:05:23,843 [INFO] Train Epoch: 25 [46208/62998 (73%)] train loss: 0.617
+2024-12-09 23:05:23,870 [INFO] Train Epoch: 25 [48768/62998 (77%)] train loss: 0.570
+2024-12-09 23:05:23,898 [INFO] Train Epoch: 25 [51328/62998 (82%)] train loss: 0.640
+2024-12-09 23:05:23,926 [INFO] Train Epoch: 25 [53888/62998 (86%)] train loss: 0.657
+2024-12-09 23:05:23,954 [INFO] Train Epoch: 25 [56448/62998 (90%)] train loss: 0.586
+2024-12-09 23:05:23,981 [INFO] Train Epoch: 25 [59008/62998 (94%)] train loss: 0.598
+2024-12-09 23:05:24,008 [INFO] Train Epoch: 25 [61568/62998 (98%)] train loss: 0.586
+2024-12-09 23:05:24,254 [INFO] Train Epoch: 25, val_acc: 0.906, val_f1: 0.903, val loss: 0.638
+2024-12-09 23:05:24,254 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:24,254 [INFO] Train Epoch: 25, val_acc: 0.906, val_f1: 0.903, val loss: 0.638
+2024-12-09 23:05:24,380 [INFO] Train Epoch: 26 [128/62998 (0%)] train loss: 0.595
+2024-12-09 23:05:24,421 [INFO] Train Epoch: 26 [2688/62998 (4%)] train loss: 0.615
+2024-12-09 23:05:24,448 [INFO] Train Epoch: 26 [5248/62998 (8%)] train loss: 0.693
+2024-12-09 23:05:24,476 [INFO] Train Epoch: 26 [7808/62998 (12%)] train loss: 0.648
+2024-12-09 23:05:24,503 [INFO] Train Epoch: 26 [10368/62998 (16%)] train loss: 0.630
+2024-12-09 23:05:24,533 [INFO] Train Epoch: 26 [12928/62998 (21%)] train loss: 0.669
+2024-12-09 23:05:24,561 [INFO] Train Epoch: 26 [15488/62998 (25%)] train loss: 0.606
+2024-12-09 23:05:24,589 [INFO] Train Epoch: 26 [18048/62998 (29%)] train loss: 0.602
+2024-12-09 23:05:24,616 [INFO] Train Epoch: 26 [20608/62998 (33%)] train loss: 0.560
+2024-12-09 23:05:24,645 [INFO] Train Epoch: 26 [23168/62998 (37%)] train loss: 0.617
+2024-12-09 23:05:24,673 [INFO] Train Epoch: 26 [25728/62998 (41%)] train loss: 0.597
+2024-12-09 23:05:24,700 [INFO] Train Epoch: 26 [28288/62998 (45%)] train loss: 0.631
+2024-12-09 23:05:24,728 [INFO] Train Epoch: 26 [30848/62998 (49%)] train loss: 0.595
+2024-12-09 23:05:24,755 [INFO] Train Epoch: 26 [33408/62998 (53%)] train loss: 0.601
+2024-12-09 23:05:24,782 [INFO] Train Epoch: 26 [35968/62998 (57%)] train loss: 0.634
+2024-12-09 23:05:24,809 [INFO] Train Epoch: 26 [38528/62998 (61%)] train loss: 0.596
+2024-12-09 23:05:24,836 [INFO] Train Epoch: 26 [41088/62998 (65%)] train loss: 0.593
+2024-12-09 23:05:24,876 [INFO] Train Epoch: 26 [43648/62998 (69%)] train loss: 0.603
+2024-12-09 23:05:24,904 [INFO] Train Epoch: 26 [46208/62998 (73%)] train loss: 0.556
+2024-12-09 23:05:24,932 [INFO] Train Epoch: 26 [48768/62998 (77%)] train loss: 0.619
+2024-12-09 23:05:24,960 [INFO] Train Epoch: 26 [51328/62998 (82%)] train loss: 0.604
+2024-12-09 23:05:24,989 [INFO] Train Epoch: 26 [53888/62998 (86%)] train loss: 0.583
+2024-12-09 23:05:25,015 [INFO] Train Epoch: 26 [56448/62998 (90%)] train loss: 0.668
+2024-12-09 23:05:25,042 [INFO] Train Epoch: 26 [59008/62998 (94%)] train loss: 0.612
+2024-12-09 23:05:25,069 [INFO] Train Epoch: 26 [61568/62998 (98%)] train loss: 0.634
+2024-12-09 23:05:25,312 [INFO] Train Epoch: 26, val_acc: 0.906, val_f1: 0.904, val loss: 0.635
+2024-12-09 23:05:25,313 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:25,313 [INFO] Train Epoch: 26, val_acc: 0.906, val_f1: 0.904, val loss: 0.635
+2024-12-09 23:05:25,433 [INFO] Train Epoch: 27 [128/62998 (0%)] train loss: 0.614
+2024-12-09 23:05:25,470 [INFO] Train Epoch: 27 [2688/62998 (4%)] train loss: 0.568
+2024-12-09 23:05:25,497 [INFO] Train Epoch: 27 [5248/62998 (8%)] train loss: 0.651
+2024-12-09 23:05:25,524 [INFO] Train Epoch: 27 [7808/62998 (12%)] train loss: 0.663
+2024-12-09 23:05:25,552 [INFO] Train Epoch: 27 [10368/62998 (16%)] train loss: 0.672
+2024-12-09 23:05:25,579 [INFO] Train Epoch: 27 [12928/62998 (21%)] train loss: 0.608
+2024-12-09 23:05:25,605 [INFO] Train Epoch: 27 [15488/62998 (25%)] train loss: 0.635
+2024-12-09 23:05:25,631 [INFO] Train Epoch: 27 [18048/62998 (29%)] train loss: 0.606
+2024-12-09 23:05:25,659 [INFO] Train Epoch: 27 [20608/62998 (33%)] train loss: 0.602
+2024-12-09 23:05:25,686 [INFO] Train Epoch: 27 [23168/62998 (37%)] train loss: 0.618
+2024-12-09 23:05:25,712 [INFO] Train Epoch: 27 [25728/62998 (41%)] train loss: 0.594
+2024-12-09 23:05:25,740 [INFO] Train Epoch: 27 [28288/62998 (45%)] train loss: 0.633
+2024-12-09 23:05:25,768 [INFO] Train Epoch: 27 [30848/62998 (49%)] train loss: 0.660
+2024-12-09 23:05:25,795 [INFO] Train Epoch: 27 [33408/62998 (53%)] train loss: 0.621
+2024-12-09 23:05:25,823 [INFO] Train Epoch: 27 [35968/62998 (57%)] train loss: 0.554
+2024-12-09 23:05:25,849 [INFO] Train Epoch: 27 [38528/62998 (61%)] train loss: 0.635
+2024-12-09 23:05:25,876 [INFO] Train Epoch: 27 [41088/62998 (65%)] train loss: 0.595
+2024-12-09 23:05:25,902 [INFO] Train Epoch: 27 [43648/62998 (69%)] train loss: 0.542
+2024-12-09 23:05:25,931 [INFO] Train Epoch: 27 [46208/62998 (73%)] train loss: 0.607
+2024-12-09 23:05:25,959 [INFO] Train Epoch: 27 [48768/62998 (77%)] train loss: 0.581
+2024-12-09 23:05:25,986 [INFO] Train Epoch: 27 [51328/62998 (82%)] train loss: 0.595
+2024-12-09 23:05:26,013 [INFO] Train Epoch: 27 [53888/62998 (86%)] train loss: 0.556
+2024-12-09 23:05:26,042 [INFO] Train Epoch: 27 [56448/62998 (90%)] train loss: 0.668
+2024-12-09 23:05:26,069 [INFO] Train Epoch: 27 [59008/62998 (94%)] train loss: 0.614
+2024-12-09 23:05:26,096 [INFO] Train Epoch: 27 [61568/62998 (98%)] train loss: 0.638
+2024-12-09 23:05:26,341 [INFO] Train Epoch: 27, val_acc: 0.908, val_f1: 0.905, val loss: 0.635
+2024-12-09 23:05:26,341 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:26,341 [INFO] Train Epoch: 27, val_acc: 0.908, val_f1: 0.905, val loss: 0.635
+2024-12-09 23:05:26,464 [INFO] Train Epoch: 28 [128/62998 (0%)] train loss: 0.608
+2024-12-09 23:05:26,494 [INFO] Train Epoch: 28 [2688/62998 (4%)] train loss: 0.626
+2024-12-09 23:05:26,522 [INFO] Train Epoch: 28 [5248/62998 (8%)] train loss: 0.616
+2024-12-09 23:05:26,549 [INFO] Train Epoch: 28 [7808/62998 (12%)] train loss: 0.626
+2024-12-09 23:05:26,577 [INFO] Train Epoch: 28 [10368/62998 (16%)] train loss: 0.589
+2024-12-09 23:05:26,604 [INFO] Train Epoch: 28 [12928/62998 (21%)] train loss: 0.601
+2024-12-09 23:05:26,633 [INFO] Train Epoch: 28 [15488/62998 (25%)] train loss: 0.618
+2024-12-09 23:05:26,660 [INFO] Train Epoch: 28 [18048/62998 (29%)] train loss: 0.593
+2024-12-09 23:05:26,687 [INFO] Train Epoch: 28 [20608/62998 (33%)] train loss: 0.678
+2024-12-09 23:05:26,715 [INFO] Train Epoch: 28 [23168/62998 (37%)] train loss: 0.653
+2024-12-09 23:05:26,743 [INFO] Train Epoch: 28 [25728/62998 (41%)] train loss: 0.562
+2024-12-09 23:05:26,769 [INFO] Train Epoch: 28 [28288/62998 (45%)] train loss: 0.601
+2024-12-09 23:05:26,796 [INFO] Train Epoch: 28 [30848/62998 (49%)] train loss: 0.609
+2024-12-09 23:05:26,823 [INFO] Train Epoch: 28 [33408/62998 (53%)] train loss: 0.623
+2024-12-09 23:05:26,849 [INFO] Train Epoch: 28 [35968/62998 (57%)] train loss: 0.664
+2024-12-09 23:05:26,877 [INFO] Train Epoch: 28 [38528/62998 (61%)] train loss: 0.598
+2024-12-09 23:05:26,903 [INFO] Train Epoch: 28 [41088/62998 (65%)] train loss: 0.615
+2024-12-09 23:05:26,933 [INFO] Train Epoch: 28 [43648/62998 (69%)] train loss: 0.633
+2024-12-09 23:05:26,961 [INFO] Train Epoch: 28 [46208/62998 (73%)] train loss: 0.574
+2024-12-09 23:05:26,989 [INFO] Train Epoch: 28 [48768/62998 (77%)] train loss: 0.649
+2024-12-09 23:05:27,017 [INFO] Train Epoch: 28 [51328/62998 (82%)] train loss: 0.670
+2024-12-09 23:05:27,046 [INFO] Train Epoch: 28 [53888/62998 (86%)] train loss: 0.667
+2024-12-09 23:05:27,074 [INFO] Train Epoch: 28 [56448/62998 (90%)] train loss: 0.708
+2024-12-09 23:05:27,101 [INFO] Train Epoch: 28 [59008/62998 (94%)] train loss: 0.557
+2024-12-09 23:05:27,128 [INFO] Train Epoch: 28 [61568/62998 (98%)] train loss: 0.679
+2024-12-09 23:05:27,373 [INFO] Train Epoch: 28, val_acc: 0.904, val_f1: 0.902, val loss: 0.634
+2024-12-09 23:05:27,373 [INFO] info: 0 num epochs without improving
+2024-12-09 23:05:27,505 [INFO] Train Epoch: 29 [128/62998 (0%)] train loss: 0.619
+2024-12-09 23:05:27,533 [INFO] Train Epoch: 29 [2688/62998 (4%)] train loss: 0.636
+2024-12-09 23:05:27,559 [INFO] Train Epoch: 29 [5248/62998 (8%)] train loss: 0.603
+2024-12-09 23:05:27,587 [INFO] Train Epoch: 29 [7808/62998 (12%)] train loss: 0.660
+2024-12-09 23:05:27,614 [INFO] Train Epoch: 29 [10368/62998 (16%)] train loss: 0.633
+2024-12-09 23:05:27,641 [INFO] Train Epoch: 29 [12928/62998 (21%)] train loss: 0.638
+2024-12-09 23:05:27,668 [INFO] Train Epoch: 29 [15488/62998 (25%)] train loss: 0.627
+2024-12-09 23:05:27,695 [INFO] Train Epoch: 29 [18048/62998 (29%)] train loss: 0.590
+2024-12-09 23:05:27,723 [INFO] Train Epoch: 29 [20608/62998 (33%)] train loss: 0.570
+2024-12-09 23:05:27,750 [INFO] Train Epoch: 29 [23168/62998 (37%)] train loss: 0.586
+2024-12-09 23:05:27,777 [INFO] Train Epoch: 29 [25728/62998 (41%)] train loss: 0.588
+2024-12-09 23:05:27,803 [INFO] Train Epoch: 29 [28288/62998 (45%)] train loss: 0.592
+2024-12-09 23:05:27,832 [INFO] Train Epoch: 29 [30848/62998 (49%)] train loss: 0.589
+2024-12-09 23:05:27,860 [INFO] Train Epoch: 29 [33408/62998 (53%)] train loss: 0.640
+2024-12-09 23:05:27,887 [INFO] Train Epoch: 29 [35968/62998 (57%)] train loss: 0.709
+2024-12-09 23:05:27,914 [INFO] Train Epoch: 29 [38528/62998 (61%)] train loss: 0.624
+2024-12-09 23:05:27,941 [INFO] Train Epoch: 29 [41088/62998 (65%)] train loss: 0.596
+2024-12-09 23:05:27,968 [INFO] Train Epoch: 29 [43648/62998 (69%)] train loss: 0.657
+2024-12-09 23:05:27,995 [INFO] Train Epoch: 29 [46208/62998 (73%)] train loss: 0.595
+2024-12-09 23:05:28,022 [INFO] Train Epoch: 29 [48768/62998 (77%)] train loss: 0.630
+2024-12-09 23:05:28,048 [INFO] Train Epoch: 29 [51328/62998 (82%)] train loss: 0.602
+2024-12-09 23:05:28,076 [INFO] Train Epoch: 29 [53888/62998 (86%)] train loss: 0.625
+2024-12-09 23:05:28,103 [INFO] Train Epoch: 29 [56448/62998 (90%)] train loss: 0.654
+2024-12-09 23:05:28,130 [INFO] Train Epoch: 29 [59008/62998 (94%)] train loss: 0.632
+2024-12-09 23:05:28,157 [INFO] Train Epoch: 29 [61568/62998 (98%)] train loss: 0.613
+2024-12-09 23:05:28,421 [INFO] Train Epoch: 29, val_acc: 0.909, val_f1: 0.906, val loss: 0.635
+2024-12-09 23:05:28,422 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:28,422 [INFO] Train Epoch: 29, val_acc: 0.909, val_f1: 0.906, val loss: 0.635
+2024-12-09 23:05:28,558 [INFO] Train Epoch: 30 [128/62998 (0%)] train loss: 0.646
+2024-12-09 23:05:28,586 [INFO] Train Epoch: 30 [2688/62998 (4%)] train loss: 0.612
+2024-12-09 23:05:28,612 [INFO] Train Epoch: 30 [5248/62998 (8%)] train loss: 0.629
+2024-12-09 23:05:28,639 [INFO] Train Epoch: 30 [7808/62998 (12%)] train loss: 0.617
+2024-12-09 23:05:28,666 [INFO] Train Epoch: 30 [10368/62998 (16%)] train loss: 0.636
+2024-12-09 23:05:28,694 [INFO] Train Epoch: 30 [12928/62998 (21%)] train loss: 0.584
+2024-12-09 23:05:28,721 [INFO] Train Epoch: 30 [15488/62998 (25%)] train loss: 0.682
+2024-12-09 23:05:28,748 [INFO] Train Epoch: 30 [18048/62998 (29%)] train loss: 0.597
+2024-12-09 23:05:28,776 [INFO] Train Epoch: 30 [20608/62998 (33%)] train loss: 0.583
+2024-12-09 23:05:28,803 [INFO] Train Epoch: 30 [23168/62998 (37%)] train loss: 0.662
+2024-12-09 23:05:28,831 [INFO] Train Epoch: 30 [25728/62998 (41%)] train loss: 0.622
+2024-12-09 23:05:28,859 [INFO] Train Epoch: 30 [28288/62998 (45%)] train loss: 0.683
+2024-12-09 23:05:28,887 [INFO] Train Epoch: 30 [30848/62998 (49%)] train loss: 0.631
+2024-12-09 23:05:28,914 [INFO] Train Epoch: 30 [33408/62998 (53%)] train loss: 0.634
+2024-12-09 23:05:28,942 [INFO] Train Epoch: 30 [35968/62998 (57%)] train loss: 0.614
+2024-12-09 23:05:28,968 [INFO] Train Epoch: 30 [38528/62998 (61%)] train loss: 0.646
+2024-12-09 23:05:28,995 [INFO] Train Epoch: 30 [41088/62998 (65%)] train loss: 0.613
+2024-12-09 23:05:29,024 [INFO] Train Epoch: 30 [43648/62998 (69%)] train loss: 0.609
+2024-12-09 23:05:29,051 [INFO] Train Epoch: 30 [46208/62998 (73%)] train loss: 0.712
+2024-12-09 23:05:29,080 [INFO] Train Epoch: 30 [48768/62998 (77%)] train loss: 0.597
+2024-12-09 23:05:29,108 [INFO] Train Epoch: 30 [51328/62998 (82%)] train loss: 0.620
+2024-12-09 23:05:29,135 [INFO] Train Epoch: 30 [53888/62998 (86%)] train loss: 0.617
+2024-12-09 23:05:29,163 [INFO] Train Epoch: 30 [56448/62998 (90%)] train loss: 0.616
+2024-12-09 23:05:29,191 [INFO] Train Epoch: 30 [59008/62998 (94%)] train loss: 0.644
+2024-12-09 23:05:29,219 [INFO] Train Epoch: 30 [61568/62998 (98%)] train loss: 0.634
+2024-12-09 23:05:29,472 [INFO] Train Epoch: 30, val_acc: 0.904, val_f1: 0.899, val loss: 0.640
+2024-12-09 23:05:29,472 [INFO] info: 0 num epochs without improving
+2024-12-09 23:05:29,602 [INFO] Train Epoch: 31 [128/62998 (0%)] train loss: 0.638
+2024-12-09 23:05:29,628 [INFO] Train Epoch: 31 [2688/62998 (4%)] train loss: 0.644
+2024-12-09 23:05:29,656 [INFO] Train Epoch: 31 [5248/62998 (8%)] train loss: 0.631
+2024-12-09 23:05:29,683 [INFO] Train Epoch: 31 [7808/62998 (12%)] train loss: 0.639
+2024-12-09 23:05:29,711 [INFO] Train Epoch: 31 [10368/62998 (16%)] train loss: 0.619
+2024-12-09 23:05:29,738 [INFO] Train Epoch: 31 [12928/62998 (21%)] train loss: 0.604
+2024-12-09 23:05:29,765 [INFO] Train Epoch: 31 [15488/62998 (25%)] train loss: 0.555
+2024-12-09 23:05:29,793 [INFO] Train Epoch: 31 [18048/62998 (29%)] train loss: 0.679
+2024-12-09 23:05:29,823 [INFO] Train Epoch: 31 [20608/62998 (33%)] train loss: 0.594
+2024-12-09 23:05:29,849 [INFO] Train Epoch: 31 [23168/62998 (37%)] train loss: 0.665
+2024-12-09 23:05:29,877 [INFO] Train Epoch: 31 [25728/62998 (41%)] train loss: 0.579
+2024-12-09 23:05:29,904 [INFO] Train Epoch: 31 [28288/62998 (45%)] train loss: 0.639
+2024-12-09 23:05:29,932 [INFO] Train Epoch: 31 [30848/62998 (49%)] train loss: 0.614
+2024-12-09 23:05:29,960 [INFO] Train Epoch: 31 [33408/62998 (53%)] train loss: 0.620
+2024-12-09 23:05:29,987 [INFO] Train Epoch: 31 [35968/62998 (57%)] train loss: 0.643
+2024-12-09 23:05:30,013 [INFO] Train Epoch: 31 [38528/62998 (61%)] train loss: 0.639
+2024-12-09 23:05:30,042 [INFO] Train Epoch: 31 [41088/62998 (65%)] train loss: 0.681
+2024-12-09 23:05:30,068 [INFO] Train Epoch: 31 [43648/62998 (69%)] train loss: 0.673
+2024-12-09 23:05:30,095 [INFO] Train Epoch: 31 [46208/62998 (73%)] train loss: 0.586
+2024-12-09 23:05:30,125 [INFO] Train Epoch: 31 [48768/62998 (77%)] train loss: 0.568
+2024-12-09 23:05:30,152 [INFO] Train Epoch: 31 [51328/62998 (82%)] train loss: 0.600
+2024-12-09 23:05:30,180 [INFO] Train Epoch: 31 [53888/62998 (86%)] train loss: 0.590
+2024-12-09 23:05:30,207 [INFO] Train Epoch: 31 [56448/62998 (90%)] train loss: 0.612
+2024-12-09 23:05:30,234 [INFO] Train Epoch: 31 [59008/62998 (94%)] train loss: 0.612
+2024-12-09 23:05:30,262 [INFO] Train Epoch: 31 [61568/62998 (98%)] train loss: 0.589
+2024-12-09 23:05:30,502 [INFO] Train Epoch: 31, val_acc: 0.908, val_f1: 0.906, val loss: 0.633
+2024-12-09 23:05:30,502 [INFO] info: 1 num epochs without improving
+2024-12-09 23:05:30,632 [INFO] Train Epoch: 32 [128/62998 (0%)] train loss: 0.628
+2024-12-09 23:05:30,661 [INFO] Train Epoch: 32 [2688/62998 (4%)] train loss: 0.617
+2024-12-09 23:05:30,688 [INFO] Train Epoch: 32 [5248/62998 (8%)] train loss: 0.625
+2024-12-09 23:05:30,716 [INFO] Train Epoch: 32 [7808/62998 (12%)] train loss: 0.580
+2024-12-09 23:05:30,746 [INFO] Train Epoch: 32 [10368/62998 (16%)] train loss: 0.603
+2024-12-09 23:05:30,785 [INFO] Train Epoch: 32 [12928/62998 (21%)] train loss: 0.561
+2024-12-09 23:05:30,812 [INFO] Train Epoch: 32 [15488/62998 (25%)] train loss: 0.656
+2024-12-09 23:05:30,839 [INFO] Train Epoch: 32 [18048/62998 (29%)] train loss: 0.625
+2024-12-09 23:05:30,867 [INFO] Train Epoch: 32 [20608/62998 (33%)] train loss: 0.651
+2024-12-09 23:05:30,896 [INFO] Train Epoch: 32 [23168/62998 (37%)] train loss: 0.603
+2024-12-09 23:05:30,924 [INFO] Train Epoch: 32 [25728/62998 (41%)] train loss: 0.617
+2024-12-09 23:05:30,952 [INFO] Train Epoch: 32 [28288/62998 (45%)] train loss: 0.598
+2024-12-09 23:05:30,979 [INFO] Train Epoch: 32 [30848/62998 (49%)] train loss: 0.602
+2024-12-09 23:05:31,005 [INFO] Train Epoch: 32 [33408/62998 (53%)] train loss: 0.611
+2024-12-09 23:05:31,032 [INFO] Train Epoch: 32 [35968/62998 (57%)] train loss: 0.653
+2024-12-09 23:05:31,059 [INFO] Train Epoch: 32 [38528/62998 (61%)] train loss: 0.582
+2024-12-09 23:05:31,086 [INFO] Train Epoch: 32 [41088/62998 (65%)] train loss: 0.671
+2024-12-09 23:05:31,114 [INFO] Train Epoch: 32 [43648/62998 (69%)] train loss: 0.567
+2024-12-09 23:05:31,142 [INFO] Train Epoch: 32 [46208/62998 (73%)] train loss: 0.642
+2024-12-09 23:05:31,169 [INFO] Train Epoch: 32 [48768/62998 (77%)] train loss: 0.620
+2024-12-09 23:05:31,196 [INFO] Train Epoch: 32 [51328/62998 (82%)] train loss: 0.629
+2024-12-09 23:05:31,224 [INFO] Train Epoch: 32 [53888/62998 (86%)] train loss: 0.592
+2024-12-09 23:05:31,251 [INFO] Train Epoch: 32 [56448/62998 (90%)] train loss: 0.592
+2024-12-09 23:05:31,280 [INFO] Train Epoch: 32 [59008/62998 (94%)] train loss: 0.639
+2024-12-09 23:05:31,307 [INFO] Train Epoch: 32 [61568/62998 (98%)] train loss: 0.585
+2024-12-09 23:05:31,557 [INFO] Train Epoch: 32, val_acc: 0.907, val_f1: 0.905, val loss: 0.632
+2024-12-09 23:05:31,557 [INFO] info: 2 num epochs without improving
+2024-12-09 23:05:31,674 [INFO] Train Epoch: 33 [128/62998 (0%)] train loss: 0.634
+2024-12-09 23:05:31,704 [INFO] Train Epoch: 33 [2688/62998 (4%)] train loss: 0.698
+2024-12-09 23:05:31,731 [INFO] Train Epoch: 33 [5248/62998 (8%)] train loss: 0.594
+2024-12-09 23:05:31,759 [INFO] Train Epoch: 33 [7808/62998 (12%)] train loss: 0.625
+2024-12-09 23:05:31,788 [INFO] Train Epoch: 33 [10368/62998 (16%)] train loss: 0.573
+2024-12-09 23:05:31,816 [INFO] Train Epoch: 33 [12928/62998 (21%)] train loss: 0.608
+2024-12-09 23:05:31,843 [INFO] Train Epoch: 33 [15488/62998 (25%)] train loss: 0.640
+2024-12-09 23:05:31,869 [INFO] Train Epoch: 33 [18048/62998 (29%)] train loss: 0.604
+2024-12-09 23:05:31,897 [INFO] Train Epoch: 33 [20608/62998 (33%)] train loss: 0.604
+2024-12-09 23:05:31,927 [INFO] Train Epoch: 33 [23168/62998 (37%)] train loss: 0.635
+2024-12-09 23:05:31,954 [INFO] Train Epoch: 33 [25728/62998 (41%)] train loss: 0.681
+2024-12-09 23:05:31,981 [INFO] Train Epoch: 33 [28288/62998 (45%)] train loss: 0.618
+2024-12-09 23:05:32,009 [INFO] Train Epoch: 33 [30848/62998 (49%)] train loss: 0.637
+2024-12-09 23:05:32,036 [INFO] Train Epoch: 33 [33408/62998 (53%)] train loss: 0.607
+2024-12-09 23:05:32,063 [INFO] Train Epoch: 33 [35968/62998 (57%)] train loss: 0.608
+2024-12-09 23:05:32,090 [INFO] Train Epoch: 33 [38528/62998 (61%)] train loss: 0.602
+2024-12-09 23:05:32,117 [INFO] Train Epoch: 33 [41088/62998 (65%)] train loss: 0.591
+2024-12-09 23:05:32,144 [INFO] Train Epoch: 33 [43648/62998 (69%)] train loss: 0.598
+2024-12-09 23:05:32,170 [INFO] Train Epoch: 33 [46208/62998 (73%)] train loss: 0.601
+2024-12-09 23:05:32,197 [INFO] Train Epoch: 33 [48768/62998 (77%)] train loss: 0.597
+2024-12-09 23:05:32,224 [INFO] Train Epoch: 33 [51328/62998 (82%)] train loss: 0.571
+2024-12-09 23:05:32,251 [INFO] Train Epoch: 33 [53888/62998 (86%)] train loss: 0.617
+2024-12-09 23:05:32,279 [INFO] Train Epoch: 33 [56448/62998 (90%)] train loss: 0.604
+2024-12-09 23:05:32,305 [INFO] Train Epoch: 33 [59008/62998 (94%)] train loss: 0.601
+2024-12-09 23:05:32,332 [INFO] Train Epoch: 33 [61568/62998 (98%)] train loss: 0.613
+2024-12-09 23:05:32,590 [INFO] Train Epoch: 33, val_acc: 0.907, val_f1: 0.903, val loss: 0.635
+2024-12-09 23:05:32,590 [INFO] info: 3 num epochs without improving
+2024-12-09 23:05:32,722 [INFO] Train Epoch: 34 [128/62998 (0%)] train loss: 0.608
+2024-12-09 23:05:32,749 [INFO] Train Epoch: 34 [2688/62998 (4%)] train loss: 0.631
+2024-12-09 23:05:32,776 [INFO] Train Epoch: 34 [5248/62998 (8%)] train loss: 0.618
+2024-12-09 23:05:32,803 [INFO] Train Epoch: 34 [7808/62998 (12%)] train loss: 0.608
+2024-12-09 23:05:32,831 [INFO] Train Epoch: 34 [10368/62998 (16%)] train loss: 0.621
+2024-12-09 23:05:32,860 [INFO] Train Epoch: 34 [12928/62998 (21%)] train loss: 0.626
+2024-12-09 23:05:32,887 [INFO] Train Epoch: 34 [15488/62998 (25%)] train loss: 0.603
+2024-12-09 23:05:32,914 [INFO] Train Epoch: 34 [18048/62998 (29%)] train loss: 0.642
+2024-12-09 23:05:32,942 [INFO] Train Epoch: 34 [20608/62998 (33%)] train loss: 0.541
+2024-12-09 23:05:32,969 [INFO] Train Epoch: 34 [23168/62998 (37%)] train loss: 0.594
+2024-12-09 23:05:32,997 [INFO] Train Epoch: 34 [25728/62998 (41%)] train loss: 0.618
+2024-12-09 23:05:33,025 [INFO] Train Epoch: 34 [28288/62998 (45%)] train loss: 0.585
+2024-12-09 23:05:33,051 [INFO] Train Epoch: 34 [30848/62998 (49%)] train loss: 0.630
+2024-12-09 23:05:33,078 [INFO] Train Epoch: 34 [33408/62998 (53%)] train loss: 0.594
+2024-12-09 23:05:33,105 [INFO] Train Epoch: 34 [35968/62998 (57%)] train loss: 0.625
+2024-12-09 23:05:33,134 [INFO] Train Epoch: 34 [38528/62998 (61%)] train loss: 0.623
+2024-12-09 23:05:33,162 [INFO] Train Epoch: 34 [41088/62998 (65%)] train loss: 0.631
+2024-12-09 23:05:33,189 [INFO] Train Epoch: 34 [43648/62998 (69%)] train loss: 0.565
+2024-12-09 23:05:33,215 [INFO] Train Epoch: 34 [46208/62998 (73%)] train loss: 0.612
+2024-12-09 23:05:33,242 [INFO] Train Epoch: 34 [48768/62998 (77%)] train loss: 0.598
+2024-12-09 23:05:33,269 [INFO] Train Epoch: 34 [51328/62998 (82%)] train loss: 0.617
+2024-12-09 23:05:33,297 [INFO] Train Epoch: 34 [53888/62998 (86%)] train loss: 0.682
+2024-12-09 23:05:33,325 [INFO] Train Epoch: 34 [56448/62998 (90%)] train loss: 0.630
+2024-12-09 23:05:33,353 [INFO] Train Epoch: 34 [59008/62998 (94%)] train loss: 0.614
+2024-12-09 23:05:33,381 [INFO] Train Epoch: 34 [61568/62998 (98%)] train loss: 0.625
+2024-12-09 23:05:33,617 [INFO] Train Epoch: 34, val_acc: 0.909, val_f1: 0.905, val loss: 0.632
+2024-12-09 23:05:33,618 [INFO] info: 4 num epochs without improving
+2024-12-09 23:05:33,745 [INFO] Train Epoch: 35 [128/62998 (0%)] train loss: 0.579
+2024-12-09 23:05:33,772 [INFO] Train Epoch: 35 [2688/62998 (4%)] train loss: 0.587
+2024-12-09 23:05:33,800 [INFO] Train Epoch: 35 [5248/62998 (8%)] train loss: 0.648
+2024-12-09 23:05:33,827 [INFO] Train Epoch: 35 [7808/62998 (12%)] train loss: 0.603
+2024-12-09 23:05:33,856 [INFO] Train Epoch: 35 [10368/62998 (16%)] train loss: 0.574
+2024-12-09 23:05:33,883 [INFO] Train Epoch: 35 [12928/62998 (21%)] train loss: 0.603
+2024-12-09 23:05:33,910 [INFO] Train Epoch: 35 [15488/62998 (25%)] train loss: 0.620
+2024-12-09 23:05:33,937 [INFO] Train Epoch: 35 [18048/62998 (29%)] train loss: 0.657
+2024-12-09 23:05:33,964 [INFO] Train Epoch: 35 [20608/62998 (33%)] train loss: 0.608
+2024-12-09 23:05:33,992 [INFO] Train Epoch: 35 [23168/62998 (37%)] train loss: 0.608
+2024-12-09 23:05:34,019 [INFO] Train Epoch: 35 [25728/62998 (41%)] train loss: 0.641
+2024-12-09 23:05:34,047 [INFO] Train Epoch: 35 [28288/62998 (45%)] train loss: 0.603
+2024-12-09 23:05:34,077 [INFO] Train Epoch: 35 [30848/62998 (49%)] train loss: 0.644
+2024-12-09 23:05:34,106 [INFO] Train Epoch: 35 [33408/62998 (53%)] train loss: 0.694
+2024-12-09 23:05:34,133 [INFO] Train Epoch: 35 [35968/62998 (57%)] train loss: 0.598
+2024-12-09 23:05:34,160 [INFO] Train Epoch: 35 [38528/62998 (61%)] train loss: 0.704
+2024-12-09 23:05:34,187 [INFO] Train Epoch: 35 [41088/62998 (65%)] train loss: 0.615
+2024-12-09 23:05:34,214 [INFO] Train Epoch: 35 [43648/62998 (69%)] train loss: 0.662
+2024-12-09 23:05:34,242 [INFO] Train Epoch: 35 [46208/62998 (73%)] train loss: 0.637
+2024-12-09 23:05:34,269 [INFO] Train Epoch: 35 [48768/62998 (77%)] train loss: 0.572
+2024-12-09 23:05:34,297 [INFO] Train Epoch: 35 [51328/62998 (82%)] train loss: 0.592
+2024-12-09 23:05:34,324 [INFO] Train Epoch: 35 [53888/62998 (86%)] train loss: 0.600
+2024-12-09 23:05:34,352 [INFO] Train Epoch: 35 [56448/62998 (90%)] train loss: 0.614
+2024-12-09 23:05:34,379 [INFO] Train Epoch: 35 [59008/62998 (94%)] train loss: 0.597
+2024-12-09 23:05:34,407 [INFO] Train Epoch: 35 [61568/62998 (98%)] train loss: 0.592
+2024-12-09 23:05:34,657 [INFO] Train Epoch: 35, val_acc: 0.907, val_f1: 0.903, val loss: 0.636
+2024-12-09 23:05:34,657 [INFO] info: 5 num epochs without improving
+2024-12-09 23:05:34,769 [INFO] Train Epoch: 36 [128/62998 (0%)] train loss: 0.650
+2024-12-09 23:05:34,799 [INFO] Train Epoch: 36 [2688/62998 (4%)] train loss: 0.690
+2024-12-09 23:05:34,826 [INFO] Train Epoch: 36 [5248/62998 (8%)] train loss: 0.601
+2024-12-09 23:05:34,853 [INFO] Train Epoch: 36 [7808/62998 (12%)] train loss: 0.618
+2024-12-09 23:05:34,880 [INFO] Train Epoch: 36 [10368/62998 (16%)] train loss: 0.566
+2024-12-09 23:05:34,910 [INFO] Train Epoch: 36 [12928/62998 (21%)] train loss: 0.584
+2024-12-09 23:05:34,938 [INFO] Train Epoch: 36 [15488/62998 (25%)] train loss: 0.614
+2024-12-09 23:05:34,965 [INFO] Train Epoch: 36 [18048/62998 (29%)] train loss: 0.592
+2024-12-09 23:05:34,992 [INFO] Train Epoch: 36 [20608/62998 (33%)] train loss: 0.633
+2024-12-09 23:05:35,018 [INFO] Train Epoch: 36 [23168/62998 (37%)] train loss: 0.610
+2024-12-09 23:05:35,046 [INFO] Train Epoch: 36 [25728/62998 (41%)] train loss: 0.600
+2024-12-09 23:05:35,072 [INFO] Train Epoch: 36 [28288/62998 (45%)] train loss: 0.642
+2024-12-09 23:05:35,101 [INFO] Train Epoch: 36 [30848/62998 (49%)] train loss: 0.658
+2024-12-09 23:05:35,128 [INFO] Train Epoch: 36 [33408/62998 (53%)] train loss: 0.613
+2024-12-09 23:05:35,156 [INFO] Train Epoch: 36 [35968/62998 (57%)] train loss: 0.597
+2024-12-09 23:05:35,183 [INFO] Train Epoch: 36 [38528/62998 (61%)] train loss: 0.596
+2024-12-09 23:05:35,212 [INFO] Train Epoch: 36 [41088/62998 (65%)] train loss: 0.630
+2024-12-09 23:05:35,238 [INFO] Train Epoch: 36 [43648/62998 (69%)] train loss: 0.581
+2024-12-09 23:05:35,265 [INFO] Train Epoch: 36 [46208/62998 (73%)] train loss: 0.640
+2024-12-09 23:05:35,292 [INFO] Train Epoch: 36 [48768/62998 (77%)] train loss: 0.632
+2024-12-09 23:05:35,319 [INFO] Train Epoch: 36 [51328/62998 (82%)] train loss: 0.627
+2024-12-09 23:05:35,346 [INFO] Train Epoch: 36 [53888/62998 (86%)] train loss: 0.569
+2024-12-09 23:05:35,372 [INFO] Train Epoch: 36 [56448/62998 (90%)] train loss: 0.637
+2024-12-09 23:05:35,400 [INFO] Train Epoch: 36 [59008/62998 (94%)] train loss: 0.633
+2024-12-09 23:05:35,427 [INFO] Train Epoch: 36 [61568/62998 (98%)] train loss: 0.640
+2024-12-09 23:05:35,671 [INFO] Train Epoch: 36, val_acc: 0.909, val_f1: 0.906, val loss: 0.631
+2024-12-09 23:05:35,671 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:35,671 [INFO] Train Epoch: 36, val_acc: 0.909, val_f1: 0.906, val loss: 0.631
+2024-12-09 23:05:35,796 [INFO] Train Epoch: 37 [128/62998 (0%)] train loss: 0.618
+2024-12-09 23:05:35,834 [INFO] Train Epoch: 37 [2688/62998 (4%)] train loss: 0.660
+2024-12-09 23:05:35,861 [INFO] Train Epoch: 37 [5248/62998 (8%)] train loss: 0.578
+2024-12-09 23:05:35,889 [INFO] Train Epoch: 37 [7808/62998 (12%)] train loss: 0.608
+2024-12-09 23:05:35,915 [INFO] Train Epoch: 37 [10368/62998 (16%)] train loss: 0.597
+2024-12-09 23:05:35,941 [INFO] Train Epoch: 37 [12928/62998 (21%)] train loss: 0.647
+2024-12-09 23:05:35,967 [INFO] Train Epoch: 37 [15488/62998 (25%)] train loss: 0.609
+2024-12-09 23:05:35,995 [INFO] Train Epoch: 37 [18048/62998 (29%)] train loss: 0.577
+2024-12-09 23:05:36,022 [INFO] Train Epoch: 37 [20608/62998 (33%)] train loss: 0.637
+2024-12-09 23:05:36,049 [INFO] Train Epoch: 37 [23168/62998 (37%)] train loss: 0.641
+2024-12-09 23:05:36,076 [INFO] Train Epoch: 37 [25728/62998 (41%)] train loss: 0.589
+2024-12-09 23:05:36,102 [INFO] Train Epoch: 37 [28288/62998 (45%)] train loss: 0.646
+2024-12-09 23:05:36,130 [INFO] Train Epoch: 37 [30848/62998 (49%)] train loss: 0.633
+2024-12-09 23:05:36,158 [INFO] Train Epoch: 37 [33408/62998 (53%)] train loss: 0.614
+2024-12-09 23:05:36,185 [INFO] Train Epoch: 37 [35968/62998 (57%)] train loss: 0.645
+2024-12-09 23:05:36,214 [INFO] Train Epoch: 37 [38528/62998 (61%)] train loss: 0.647
+2024-12-09 23:05:36,243 [INFO] Train Epoch: 37 [41088/62998 (65%)] train loss: 0.556
+2024-12-09 23:05:36,272 [INFO] Train Epoch: 37 [43648/62998 (69%)] train loss: 0.666
+2024-12-09 23:05:36,301 [INFO] Train Epoch: 37 [46208/62998 (73%)] train loss: 0.605
+2024-12-09 23:05:36,330 [INFO] Train Epoch: 37 [48768/62998 (77%)] train loss: 0.605
+2024-12-09 23:05:36,360 [INFO] Train Epoch: 37 [51328/62998 (82%)] train loss: 0.584
+2024-12-09 23:05:36,387 [INFO] Train Epoch: 37 [53888/62998 (86%)] train loss: 0.643
+2024-12-09 23:05:36,415 [INFO] Train Epoch: 37 [56448/62998 (90%)] train loss: 0.627
+2024-12-09 23:05:36,444 [INFO] Train Epoch: 37 [59008/62998 (94%)] train loss: 0.575
+2024-12-09 23:05:36,470 [INFO] Train Epoch: 37 [61568/62998 (98%)] train loss: 0.671
+2024-12-09 23:05:36,702 [INFO] Train Epoch: 37, val_acc: 0.910, val_f1: 0.907, val loss: 0.630
+2024-12-09 23:05:36,703 [INFO] ==================== best validation metric ====================
+2024-12-09 23:05:36,703 [INFO] Train Epoch: 37, val_acc: 0.910, val_f1: 0.907, val loss: 0.630
+2024-12-09 23:05:36,824 [INFO] Train Epoch: 38 [128/62998 (0%)] train loss: 0.657
+2024-12-09 23:05:36,853 [INFO] Train Epoch: 38 [2688/62998 (4%)] train loss: 0.573
+2024-12-09 23:05:36,882 [INFO] Train Epoch: 38 [5248/62998 (8%)] train loss: 0.629
+2024-12-09 23:05:36,912 [INFO] Train Epoch: 38 [7808/62998 (12%)] train loss: 0.627
+2024-12-09 23:05:36,942 [INFO] Train Epoch: 38 [10368/62998 (16%)] train loss: 0.602
+2024-12-09 23:05:36,969 [INFO] Train Epoch: 38 [12928/62998 (21%)] train loss: 0.561
+2024-12-09 23:05:36,998 [INFO] Train Epoch: 38 [15488/62998 (25%)] train loss: 0.574
+2024-12-09 23:05:37,027 [INFO] Train Epoch: 38 [18048/62998 (29%)] train loss: 0.590
+2024-12-09 23:05:37,053 [INFO] Train Epoch: 38 [20608/62998 (33%)] train loss: 0.646
+2024-12-09 23:05:37,081 [INFO] Train Epoch: 38 [23168/62998 (37%)] train loss: 0.600
+2024-12-09 23:05:37,108 [INFO] Train Epoch: 38 [25728/62998 (41%)] train loss: 0.592
+2024-12-09 23:05:37,136 [INFO] Train Epoch: 38 [28288/62998 (45%)] train loss: 0.575
+2024-12-09 23:05:37,163 [INFO] Train Epoch: 38 [30848/62998 (49%)] train loss: 0.607
+2024-12-09 23:05:37,190 [INFO] Train Epoch: 38 [33408/62998 (53%)] train loss: 0.589
+2024-12-09 23:05:37,217 [INFO] Train Epoch: 38 [35968/62998 (57%)] train loss: 0.633
+2024-12-09 23:05:37,245 [INFO] Train Epoch: 38 [38528/62998 (61%)] train loss: 0.604
+2024-12-09 23:05:37,271 [INFO] Train Epoch: 38 [41088/62998 (65%)] train loss: 0.613
+2024-12-09 23:05:37,315 [INFO] Train Epoch: 38 [43648/62998 (69%)] train loss: 0.669
+2024-12-09 23:05:37,342 [INFO] Train Epoch: 38 [46208/62998 (73%)] train loss: 0.620
+2024-12-09 23:05:37,370 [INFO] Train Epoch: 38 [48768/62998 (77%)] train loss: 0.626
+2024-12-09 23:05:37,398 [INFO] Train Epoch: 38 [51328/62998 (82%)] train loss: 0.616
+2024-12-09 23:05:37,426 [INFO] Train Epoch: 38 [53888/62998 (86%)] train loss: 0.627
+2024-12-09 23:05:37,453 [INFO] Train Epoch: 38 [56448/62998 (90%)] train loss: 0.598
+2024-12-09 23:05:37,481 [INFO] Train Epoch: 38 [59008/62998 (94%)] train loss: 0.633
+2024-12-09 23:05:37,510 [INFO] Train Epoch: 38 [61568/62998 (98%)] train loss: 0.595
+2024-12-09 23:05:37,768 [INFO] Train Epoch: 38, val_acc: 0.910, val_f1: 0.907, val loss: 0.631
+2024-12-09 23:05:37,769 [INFO] info: 0 num epochs without improving
+2024-12-09 23:05:37,886 [INFO] Train Epoch: 39 [128/62998 (0%)] train loss: 0.649
+2024-12-09 23:05:37,917 [INFO] Train Epoch: 39 [2688/62998 (4%)] train loss: 0.618
+2024-12-09 23:05:37,945 [INFO] Train Epoch: 39 [5248/62998 (8%)] train loss: 0.601
+2024-12-09 23:05:37,972 [INFO] Train Epoch: 39 [7808/62998 (12%)] train loss: 0.583
+2024-12-09 23:05:37,999 [INFO] Train Epoch: 39 [10368/62998 (16%)] train loss: 0.616
+2024-12-09 23:05:38,027 [INFO] Train Epoch: 39 [12928/62998 (21%)] train loss: 0.624
+2024-12-09 23:05:38,057 [INFO] Train Epoch: 39 [15488/62998 (25%)] train loss: 0.582
+2024-12-09 23:05:38,085 [INFO] Train Epoch: 39 [18048/62998 (29%)] train loss: 0.606
+2024-12-09 23:05:38,113 [INFO] Train Epoch: 39 [20608/62998 (33%)] train loss: 0.625
+2024-12-09 23:05:38,139 [INFO] Train Epoch: 39 [23168/62998 (37%)] train loss: 0.649
+2024-12-09 23:05:38,166 [INFO] Train Epoch: 39 [25728/62998 (41%)] train loss: 0.580
+2024-12-09 23:05:38,194 [INFO] Train Epoch: 39 [28288/62998 (45%)] train loss: 0.589
+2024-12-09 23:05:38,222 [INFO] Train Epoch: 39 [30848/62998 (49%)] train loss: 0.628
+2024-12-09 23:05:38,250 [INFO] Train Epoch: 39 [33408/62998 (53%)] train loss: 0.608
+2024-12-09 23:05:38,277 [INFO] Train Epoch: 39 [35968/62998 (57%)] train loss: 0.583
+2024-12-09 23:05:38,304 [INFO] Train Epoch: 39 [38528/62998 (61%)] train loss: 0.588
+2024-12-09 23:05:38,331 [INFO] Train Epoch: 39 [41088/62998 (65%)] train loss: 0.613
+2024-12-09 23:05:38,359 [INFO] Train Epoch: 39 [43648/62998 (69%)] train loss: 0.590
+2024-12-09 23:05:38,386 [INFO] Train Epoch: 39 [46208/62998 (73%)] train loss: 0.663
+2024-12-09 23:05:38,413 [INFO] Train Epoch: 39 [48768/62998 (77%)] train loss: 0.588
+2024-12-09 23:05:38,438 [INFO] Train Epoch: 39 [51328/62998 (82%)] train loss: 0.571
+2024-12-09 23:05:38,465 [INFO] Train Epoch: 39 [53888/62998 (86%)] train loss: 0.567
+2024-12-09 23:05:38,492 [INFO] Train Epoch: 39 [56448/62998 (90%)] train loss: 0.614
+2024-12-09 23:05:38,518 [INFO] Train Epoch: 39 [59008/62998 (94%)] train loss: 0.591
+2024-12-09 23:05:38,546 [INFO] Train Epoch: 39 [61568/62998 (98%)] train loss: 0.582
+2024-12-09 23:05:38,794 [INFO] Train Epoch: 39, val_acc: 0.909, val_f1: 0.905, val loss: 0.632
+2024-12-09 23:05:38,794 [INFO] info: 1 num epochs without improving
+2024-12-09 23:05:38,921 [INFO] Train Epoch: 40 [128/62998 (0%)] train loss: 0.587
+2024-12-09 23:05:38,951 [INFO] Train Epoch: 40 [2688/62998 (4%)] train loss: 0.568
+2024-12-09 23:05:38,978 [INFO] Train Epoch: 40 [5248/62998 (8%)] train loss: 0.585
+2024-12-09 23:05:39,006 [INFO] Train Epoch: 40 [7808/62998 (12%)] train loss: 0.590
+2024-12-09 23:05:39,035 [INFO] Train Epoch: 40 [10368/62998 (16%)] train loss: 0.616
+2024-12-09 23:05:39,062 [INFO] Train Epoch: 40 [12928/62998 (21%)] train loss: 0.596
+2024-12-09 23:05:39,089 [INFO] Train Epoch: 40 [15488/62998 (25%)] train loss: 0.602
+2024-12-09 23:05:39,116 [INFO] Train Epoch: 40 [18048/62998 (29%)] train loss: 0.630
+2024-12-09 23:05:39,145 [INFO] Train Epoch: 40 [20608/62998 (33%)] train loss: 0.661
+2024-12-09 23:05:39,172 [INFO] Train Epoch: 40 [23168/62998 (37%)] train loss: 0.617
+2024-12-09 23:05:39,200 [INFO] Train Epoch: 40 [25728/62998 (41%)] train loss: 0.616
+2024-12-09 23:05:39,229 [INFO] Train Epoch: 40 [28288/62998 (45%)] train loss: 0.614
+2024-12-09 23:05:39,257 [INFO] Train Epoch: 40 [30848/62998 (49%)] train loss: 0.612
+2024-12-09 23:05:39,285 [INFO] Train Epoch: 40 [33408/62998 (53%)] train loss: 0.597
+2024-12-09 23:05:39,312 [INFO] Train Epoch: 40 [35968/62998 (57%)] train loss: 0.591
+2024-12-09 23:05:39,339 [INFO] Train Epoch: 40 [38528/62998 (61%)] train loss: 0.634
+2024-12-09 23:05:39,367 [INFO] Train Epoch: 40 [41088/62998 (65%)] train loss: 0.627
+2024-12-09 23:05:39,395 [INFO] Train Epoch: 40 [43648/62998 (69%)] train loss: 0.677
+2024-12-09 23:05:39,423 [INFO] Train Epoch: 40 [46208/62998 (73%)] train loss: 0.666
+2024-12-09 23:05:39,450 [INFO] Train Epoch: 40 [48768/62998 (77%)] train loss: 0.598
+2024-12-09 23:05:39,477 [INFO] Train Epoch: 40 [51328/62998 (82%)] train loss: 0.593
+2024-12-09 23:05:39,505 [INFO] Train Epoch: 40 [53888/62998 (86%)] train loss: 0.582
+2024-12-09 23:05:39,533 [INFO] Train Epoch: 40 [56448/62998 (90%)] train loss: 0.609
+2024-12-09 23:05:39,561 [INFO] Train Epoch: 40 [59008/62998 (94%)] train loss: 0.570
+2024-12-09 23:05:39,589 [INFO] Train Epoch: 40 [61568/62998 (98%)] train loss: 0.573
+2024-12-09 23:05:39,831 [INFO] Train Epoch: 40, val_acc: 0.909, val_f1: 0.905, val loss: 0.632
+2024-12-09 23:05:39,831 [INFO] info: 2 num epochs without improving
+2024-12-09 23:05:39,960 [INFO] Train Epoch: 41 [128/62998 (0%)] train loss: 0.640
+2024-12-09 23:05:39,995 [INFO] Train Epoch: 41 [2688/62998 (4%)] train loss: 0.686
+2024-12-09 23:05:40,025 [INFO] Train Epoch: 41 [5248/62998 (8%)] train loss: 0.707
+2024-12-09 23:05:40,052 [INFO] Train Epoch: 41 [7808/62998 (12%)] train loss: 0.570
+2024-12-09 23:05:40,080 [INFO] Train Epoch: 41 [10368/62998 (16%)] train loss: 0.599
+2024-12-09 23:05:40,107 [INFO] Train Epoch: 41 [12928/62998 (21%)] train loss: 0.619
+2024-12-09 23:05:40,136 [INFO] Train Epoch: 41 [15488/62998 (25%)] train loss: 0.626
+2024-12-09 23:05:40,164 [INFO] Train Epoch: 41 [18048/62998 (29%)] train loss: 0.622
+2024-12-09 23:05:40,193 [INFO] Train Epoch: 41 [20608/62998 (33%)] train loss: 0.584
+2024-12-09 23:05:40,223 [INFO] Train Epoch: 41 [23168/62998 (37%)] train loss: 0.567
+2024-12-09 23:05:40,250 [INFO] Train Epoch: 41 [25728/62998 (41%)] train loss: 0.630
+2024-12-09 23:05:40,278 [INFO] Train Epoch: 41 [28288/62998 (45%)] train loss: 0.615
+2024-12-09 23:05:40,307 [INFO] Train Epoch: 41 [30848/62998 (49%)] train loss: 0.607
+2024-12-09 23:05:40,335 [INFO] Train Epoch: 41 [33408/62998 (53%)] train loss: 0.675
+2024-12-09 23:05:40,364 [INFO] Train Epoch: 41 [35968/62998 (57%)] train loss: 0.653
+2024-12-09 23:05:40,392 [INFO] Train Epoch: 41 [38528/62998 (61%)] train loss: 0.591
+2024-12-09 23:05:40,419 [INFO] Train Epoch: 41 [41088/62998 (65%)] train loss: 0.658
+2024-12-09 23:05:40,447 [INFO] Train Epoch: 41 [43648/62998 (69%)] train loss: 0.579
+2024-12-09 23:05:40,475 [INFO] Train Epoch: 41 [46208/62998 (73%)] train loss: 0.588
+2024-12-09 23:05:40,503 [INFO] Train Epoch: 41 [48768/62998 (77%)] train loss: 0.600
+2024-12-09 23:05:40,530 [INFO] Train Epoch: 41 [51328/62998 (82%)] train loss: 0.691
+2024-12-09 23:05:40,558 [INFO] Train Epoch: 41 [53888/62998 (86%)] train loss: 0.640
+2024-12-09 23:05:40,585 [INFO] Train Epoch: 41 [56448/62998 (90%)] train loss: 0.653
+2024-12-09 23:05:40,613 [INFO] Train Epoch: 41 [59008/62998 (94%)] train loss: 0.627
+2024-12-09 23:05:40,640 [INFO] Train Epoch: 41 [61568/62998 (98%)] train loss: 0.643
+2024-12-09 23:05:40,888 [INFO] Train Epoch: 41, val_acc: 0.910, val_f1: 0.907, val loss: 0.631
+2024-12-09 23:05:40,889 [INFO] info: 3 num epochs without improving
+2024-12-09 23:05:41,005 [INFO] Train Epoch: 42 [128/62998 (0%)] train loss: 0.621
+2024-12-09 23:05:41,034 [INFO] Train Epoch: 42 [2688/62998 (4%)] train loss: 0.591
+2024-12-09 23:05:41,063 [INFO] Train Epoch: 42 [5248/62998 (8%)] train loss: 0.595
+2024-12-09 23:05:41,091 [INFO] Train Epoch: 42 [7808/62998 (12%)] train loss: 0.614
+2024-12-09 23:05:41,118 [INFO] Train Epoch: 42 [10368/62998 (16%)] train loss: 0.578
+2024-12-09 23:05:41,147 [INFO] Train Epoch: 42 [12928/62998 (21%)] train loss: 0.591
+2024-12-09 23:05:41,174 [INFO] Train Epoch: 42 [15488/62998 (25%)] train loss: 0.667
+2024-12-09 23:05:41,202 [INFO] Train Epoch: 42 [18048/62998 (29%)] train loss: 0.588
+2024-12-09 23:05:41,228 [INFO] Train Epoch: 42 [20608/62998 (33%)] train loss: 0.621
+2024-12-09 23:05:41,256 [INFO] Train Epoch: 42 [23168/62998 (37%)] train loss: 0.621
+2024-12-09 23:05:41,283 [INFO] Train Epoch: 42 [25728/62998 (41%)] train loss: 0.668
+2024-12-09 23:05:41,310 [INFO] Train Epoch: 42 [28288/62998 (45%)] train loss: 0.639
+2024-12-09 23:05:41,337 [INFO] Train Epoch: 42 [30848/62998 (49%)] train loss: 0.683
+2024-12-09 23:05:41,365 [INFO] Train Epoch: 42 [33408/62998 (53%)] train loss: 0.603
+2024-12-09 23:05:41,393 [INFO] Train Epoch: 42 [35968/62998 (57%)] train loss: 0.579
+2024-12-09 23:05:41,421 [INFO] Train Epoch: 42 [38528/62998 (61%)] train loss: 0.635
+2024-12-09 23:05:41,449 [INFO] Train Epoch: 42 [41088/62998 (65%)] train loss: 0.553
+2024-12-09 23:05:41,476 [INFO] Train Epoch: 42 [43648/62998 (69%)] train loss: 0.613
+2024-12-09 23:05:41,503 [INFO] Train Epoch: 42 [46208/62998 (73%)] train loss: 0.656
+2024-12-09 23:05:41,530 [INFO] Train Epoch: 42 [48768/62998 (77%)] train loss: 0.669
+2024-12-09 23:05:41,559 [INFO] Train Epoch: 42 [51328/62998 (82%)] train loss: 0.647
+2024-12-09 23:05:41,586 [INFO] Train Epoch: 42 [53888/62998 (86%)] train loss: 0.618
+2024-12-09 23:05:41,614 [INFO] Train Epoch: 42 [56448/62998 (90%)] train loss: 0.610
+2024-12-09 23:05:41,641 [INFO] Train Epoch: 42 [59008/62998 (94%)] train loss: 0.635
+2024-12-09 23:05:41,669 [INFO] Train Epoch: 42 [61568/62998 (98%)] train loss: 0.678
+2024-12-09 23:05:41,938 [INFO] Train Epoch: 42, val_acc: 0.909, val_f1: 0.906, val loss: 0.631
+2024-12-09 23:05:41,938 [INFO] info: 4 num epochs without improving
+2024-12-09 23:05:42,063 [INFO] Train Epoch: 43 [128/62998 (0%)] train loss: 0.606
+2024-12-09 23:05:42,093 [INFO] Train Epoch: 43 [2688/62998 (4%)] train loss: 0.594
+2024-12-09 23:05:42,121 [INFO] Train Epoch: 43 [5248/62998 (8%)] train loss: 0.570
+2024-12-09 23:05:42,149 [INFO] Train Epoch: 43 [7808/62998 (12%)] train loss: 0.612
+2024-12-09 23:05:42,178 [INFO] Train Epoch: 43 [10368/62998 (16%)] train loss: 0.590
+2024-12-09 23:05:42,205 [INFO] Train Epoch: 43 [12928/62998 (21%)] train loss: 0.608
+2024-12-09 23:05:42,232 [INFO] Train Epoch: 43 [15488/62998 (25%)] train loss: 0.565
+2024-12-09 23:05:42,259 [INFO] Train Epoch: 43 [18048/62998 (29%)] train loss: 0.627
+2024-12-09 23:05:42,286 [INFO] Train Epoch: 43 [20608/62998 (33%)] train loss: 0.616
+2024-12-09 23:05:42,313 [INFO] Train Epoch: 43 [23168/62998 (37%)] train loss: 0.616
+2024-12-09 23:05:42,341 [INFO] Train Epoch: 43 [25728/62998 (41%)] train loss: 0.589
+2024-12-09 23:05:42,370 [INFO] Train Epoch: 43 [28288/62998 (45%)] train loss: 0.627
+2024-12-09 23:05:42,399 [INFO] Train Epoch: 43 [30848/62998 (49%)] train loss: 0.641
+2024-12-09 23:05:42,427 [INFO] Train Epoch: 43 [33408/62998 (53%)] train loss: 0.659
+2024-12-09 23:05:42,454 [INFO] Train Epoch: 43 [35968/62998 (57%)] train loss: 0.644
+2024-12-09 23:05:42,483 [INFO] Train Epoch: 43 [38528/62998 (61%)] train loss: 0.588
+2024-12-09 23:05:42,509 [INFO] Train Epoch: 43 [41088/62998 (65%)] train loss: 0.674
+2024-12-09 23:05:42,536 [INFO] Train Epoch: 43 [43648/62998 (69%)] train loss: 0.567
+2024-12-09 23:05:42,565 [INFO] Train Epoch: 43 [46208/62998 (73%)] train loss: 0.637
+2024-12-09 23:05:42,592 [INFO] Train Epoch: 43 [48768/62998 (77%)] train loss: 0.626
+2024-12-09 23:05:42,620 [INFO] Train Epoch: 43 [51328/62998 (82%)] train loss: 0.648
+2024-12-09 23:05:42,647 [INFO] Train Epoch: 43 [53888/62998 (86%)] train loss: 0.617
+2024-12-09 23:05:42,674 [INFO] Train Epoch: 43 [56448/62998 (90%)] train loss: 0.685
+2024-12-09 23:05:42,701 [INFO] Train Epoch: 43 [59008/62998 (94%)] train loss: 0.555
+2024-12-09 23:05:42,728 [INFO] Train Epoch: 43 [61568/62998 (98%)] train loss: 0.649
+2024-12-09 23:05:42,990 [INFO] Train Epoch: 43, val_acc: 0.910, val_f1: 0.907, val loss: 0.630
+2024-12-09 23:05:42,990 [INFO] info: 5 num epochs without improving
+2024-12-09 23:05:43,111 [INFO] Train Epoch: 44 [128/62998 (0%)] train loss: 0.650
+2024-12-09 23:05:43,143 [INFO] Train Epoch: 44 [2688/62998 (4%)] train loss: 0.631
+2024-12-09 23:05:43,171 [INFO] Train Epoch: 44 [5248/62998 (8%)] train loss: 0.585
+2024-12-09 23:05:43,197 [INFO] Train Epoch: 44 [7808/62998 (12%)] train loss: 0.607
+2024-12-09 23:05:43,224 [INFO] Train Epoch: 44 [10368/62998 (16%)] train loss: 0.595
+2024-12-09 23:05:43,252 [INFO] Train Epoch: 44 [12928/62998 (21%)] train loss: 0.603
+2024-12-09 23:05:43,281 [INFO] Train Epoch: 44 [15488/62998 (25%)] train loss: 0.636
+2024-12-09 23:05:43,308 [INFO] Train Epoch: 44 [18048/62998 (29%)] train loss: 0.560
+2024-12-09 23:05:43,336 [INFO] Train Epoch: 44 [20608/62998 (33%)] train loss: 0.566
+2024-12-09 23:05:43,364 [INFO] Train Epoch: 44 [23168/62998 (37%)] train loss: 0.587
+2024-12-09 23:05:43,393 [INFO] Train Epoch: 44 [25728/62998 (41%)] train loss: 0.627
+2024-12-09 23:05:43,420 [INFO] Train Epoch: 44 [28288/62998 (45%)] train loss: 0.614
+2024-12-09 23:05:43,448 [INFO] Train Epoch: 44 [30848/62998 (49%)] train loss: 0.603
+2024-12-09 23:05:43,474 [INFO] Train Epoch: 44 [33408/62998 (53%)] train loss: 0.621
+2024-12-09 23:05:43,501 [INFO] Train Epoch: 44 [35968/62998 (57%)] train loss: 0.640
+2024-12-09 23:05:43,531 [INFO] Train Epoch: 44 [38528/62998 (61%)] train loss: 0.604
+2024-12-09 23:05:43,559 [INFO] Train Epoch: 44 [41088/62998 (65%)] train loss: 0.651
+2024-12-09 23:05:43,586 [INFO] Train Epoch: 44 [43648/62998 (69%)] train loss: 0.609
+2024-12-09 23:05:43,614 [INFO] Train Epoch: 44 [46208/62998 (73%)] train loss: 0.624
+2024-12-09 23:05:43,639 [INFO] Train Epoch: 44 [48768/62998 (77%)] train loss: 0.597
+2024-12-09 23:05:43,667 [INFO] Train Epoch: 44 [51328/62998 (82%)] train loss: 0.624
+2024-12-09 23:05:43,695 [INFO] Train Epoch: 44 [53888/62998 (86%)] train loss: 0.581
+2024-12-09 23:05:43,723 [INFO] Train Epoch: 44 [56448/62998 (90%)] train loss: 0.628
+2024-12-09 23:05:43,751 [INFO] Train Epoch: 44 [59008/62998 (94%)] train loss: 0.717
+2024-12-09 23:05:43,779 [INFO] Train Epoch: 44 [61568/62998 (98%)] train loss: 0.585
+2024-12-09 23:05:44,030 [INFO] Train Epoch: 44, val_acc: 0.910, val_f1: 0.907, val loss: 0.631
+2024-12-09 23:05:44,030 [INFO] info: 6 num epochs without improving
+2024-12-09 23:05:44,163 [INFO] Train Epoch: 45 [128/62998 (0%)] train loss: 0.655
+2024-12-09 23:05:44,197 [INFO] Train Epoch: 45 [2688/62998 (4%)] train loss: 0.562
+2024-12-09 23:05:44,224 [INFO] Train Epoch: 45 [5248/62998 (8%)] train loss: 0.578
+2024-12-09 23:05:44,252 [INFO] Train Epoch: 45 [7808/62998 (12%)] train loss: 0.595
+2024-12-09 23:05:44,281 [INFO] Train Epoch: 45 [10368/62998 (16%)] train loss: 0.603
+2024-12-09 23:05:44,309 [INFO] Train Epoch: 45 [12928/62998 (21%)] train loss: 0.586
+2024-12-09 23:05:44,337 [INFO] Train Epoch: 45 [15488/62998 (25%)] train loss: 0.616
+2024-12-09 23:05:44,365 [INFO] Train Epoch: 45 [18048/62998 (29%)] train loss: 0.590
+2024-12-09 23:05:44,393 [INFO] Train Epoch: 45 [20608/62998 (33%)] train loss: 0.703
+2024-12-09 23:05:44,421 [INFO] Train Epoch: 45 [23168/62998 (37%)] train loss: 0.564
+2024-12-09 23:05:44,449 [INFO] Train Epoch: 45 [25728/62998 (41%)] train loss: 0.611
+2024-12-09 23:05:44,476 [INFO] Train Epoch: 45 [28288/62998 (45%)] train loss: 0.649
+2024-12-09 23:05:44,503 [INFO] Train Epoch: 45 [30848/62998 (49%)] train loss: 0.584
+2024-12-09 23:05:44,530 [INFO] Train Epoch: 45 [33408/62998 (53%)] train loss: 0.591
+2024-12-09 23:05:44,557 [INFO] Train Epoch: 45 [35968/62998 (57%)] train loss: 0.575
+2024-12-09 23:05:44,585 [INFO] Train Epoch: 45 [38528/62998 (61%)] train loss: 0.577
+2024-12-09 23:05:44,613 [INFO] Train Epoch: 45 [41088/62998 (65%)] train loss: 0.636
+2024-12-09 23:05:44,640 [INFO] Train Epoch: 45 [43648/62998 (69%)] train loss: 0.639
+2024-12-09 23:05:44,667 [INFO] Train Epoch: 45 [46208/62998 (73%)] train loss: 0.585
+2024-12-09 23:05:44,694 [INFO] Train Epoch: 45 [48768/62998 (77%)] train loss: 0.589
+2024-12-09 23:05:44,720 [INFO] Train Epoch: 45 [51328/62998 (82%)] train loss: 0.586
+2024-12-09 23:05:44,748 [INFO] Train Epoch: 45 [53888/62998 (86%)] train loss: 0.621
+2024-12-09 23:05:44,774 [INFO] Train Epoch: 45 [56448/62998 (90%)] train loss: 0.631
+2024-12-09 23:05:44,800 [INFO] Train Epoch: 45 [59008/62998 (94%)] train loss: 0.586
+2024-12-09 23:05:44,828 [INFO] Train Epoch: 45 [61568/62998 (98%)] train loss: 0.585
+2024-12-09 23:05:45,063 [INFO] Train Epoch: 45, val_acc: 0.909, val_f1: 0.907, val loss: 0.630
+2024-12-09 23:05:45,064 [INFO] info: 7 num epochs without improving
+2024-12-09 23:05:45,175 [INFO] Train Epoch: 46 [128/62998 (0%)] train loss: 0.582
+2024-12-09 23:05:45,204 [INFO] Train Epoch: 46 [2688/62998 (4%)] train loss: 0.600
+2024-12-09 23:05:45,232 [INFO] Train Epoch: 46 [5248/62998 (8%)] train loss: 0.623
+2024-12-09 23:05:45,259 [INFO] Train Epoch: 46 [7808/62998 (12%)] train loss: 0.597
+2024-12-09 23:05:45,286 [INFO] Train Epoch: 46 [10368/62998 (16%)] train loss: 0.669
+2024-12-09 23:05:45,313 [INFO] Train Epoch: 46 [12928/62998 (21%)] train loss: 0.593
+2024-12-09 23:05:45,340 [INFO] Train Epoch: 46 [15488/62998 (25%)] train loss: 0.631
+2024-12-09 23:05:45,368 [INFO] Train Epoch: 46 [18048/62998 (29%)] train loss: 0.605
+2024-12-09 23:05:45,396 [INFO] Train Epoch: 46 [20608/62998 (33%)] train loss: 0.617
+2024-12-09 23:05:45,423 [INFO] Train Epoch: 46 [23168/62998 (37%)] train loss: 0.619
+2024-12-09 23:05:45,450 [INFO] Train Epoch: 46 [25728/62998 (41%)] train loss: 0.624
+2024-12-09 23:05:45,477 [INFO] Train Epoch: 46 [28288/62998 (45%)] train loss: 0.605
+2024-12-09 23:05:45,503 [INFO] Train Epoch: 46 [30848/62998 (49%)] train loss: 0.578
+2024-12-09 23:05:45,531 [INFO] Train Epoch: 46 [33408/62998 (53%)] train loss: 0.612
+2024-12-09 23:05:45,570 [INFO] Train Epoch: 46 [35968/62998 (57%)] train loss: 0.608
+2024-12-09 23:05:45,597 [INFO] Train Epoch: 46 [38528/62998 (61%)] train loss: 0.619
+2024-12-09 23:05:45,625 [INFO] Train Epoch: 46 [41088/62998 (65%)] train loss: 0.618
+2024-12-09 23:05:45,651 [INFO] Train Epoch: 46 [43648/62998 (69%)] train loss: 0.595
+2024-12-09 23:05:45,677 [INFO] Train Epoch: 46 [46208/62998 (73%)] train loss: 0.637
+2024-12-09 23:05:45,704 [INFO] Train Epoch: 46 [48768/62998 (77%)] train loss: 0.678
+2024-12-09 23:05:45,731 [INFO] Train Epoch: 46 [51328/62998 (82%)] train loss: 0.656
+2024-12-09 23:05:45,758 [INFO] Train Epoch: 46 [53888/62998 (86%)] train loss: 0.673
+2024-12-09 23:05:45,784 [INFO] Train Epoch: 46 [56448/62998 (90%)] train loss: 0.613
+2024-12-09 23:05:45,812 [INFO] Train Epoch: 46 [59008/62998 (94%)] train loss: 0.603
+2024-12-09 23:05:45,838 [INFO] Train Epoch: 46 [61568/62998 (98%)] train loss: 0.665
+2024-12-09 23:05:46,084 [INFO] Train Epoch: 46, val_acc: 0.909, val_f1: 0.907, val loss: 0.630
+2024-12-09 23:05:46,085 [INFO] info: 8 num epochs without improving
+2024-12-09 23:05:46,207 [INFO] Train Epoch: 47 [128/62998 (0%)] train loss: 0.668
+2024-12-09 23:05:46,242 [INFO] Train Epoch: 47 [2688/62998 (4%)] train loss: 0.595
+2024-12-09 23:05:46,271 [INFO] Train Epoch: 47 [5248/62998 (8%)] train loss: 0.558
+2024-12-09 23:05:46,299 [INFO] Train Epoch: 47 [7808/62998 (12%)] train loss: 0.668
+2024-12-09 23:05:46,327 [INFO] Train Epoch: 47 [10368/62998 (16%)] train loss: 0.592
+2024-12-09 23:05:46,354 [INFO] Train Epoch: 47 [12928/62998 (21%)] train loss: 0.635
+2024-12-09 23:05:46,382 [INFO] Train Epoch: 47 [15488/62998 (25%)] train loss: 0.646
+2024-12-09 23:05:46,409 [INFO] Train Epoch: 47 [18048/62998 (29%)] train loss: 0.592
+2024-12-09 23:05:46,437 [INFO] Train Epoch: 47 [20608/62998 (33%)] train loss: 0.634
+2024-12-09 23:05:46,465 [INFO] Train Epoch: 47 [23168/62998 (37%)] train loss: 0.614
+2024-12-09 23:05:46,492 [INFO] Train Epoch: 47 [25728/62998 (41%)] train loss: 0.648
+2024-12-09 23:05:46,519 [INFO] Train Epoch: 47 [28288/62998 (45%)] train loss: 0.603
+2024-12-09 23:05:46,547 [INFO] Train Epoch: 47 [30848/62998 (49%)] train loss: 0.596
+2024-12-09 23:05:46,575 [INFO] Train Epoch: 47 [33408/62998 (53%)] train loss: 0.592
+2024-12-09 23:05:46,603 [INFO] Train Epoch: 47 [35968/62998 (57%)] train loss: 0.608
+2024-12-09 23:05:46,630 [INFO] Train Epoch: 47 [38528/62998 (61%)] train loss: 0.607
+2024-12-09 23:05:46,657 [INFO] Train Epoch: 47 [41088/62998 (65%)] train loss: 0.579
+2024-12-09 23:05:46,685 [INFO] Train Epoch: 47 [43648/62998 (69%)] train loss: 0.568
+2024-12-09 23:05:46,713 [INFO] Train Epoch: 47 [46208/62998 (73%)] train loss: 0.611
+2024-12-09 23:05:46,740 [INFO] Train Epoch: 47 [48768/62998 (77%)] train loss: 0.644
+2024-12-09 23:05:46,769 [INFO] Train Epoch: 47 [51328/62998 (82%)] train loss: 0.563
+2024-12-09 23:05:46,798 [INFO] Train Epoch: 47 [53888/62998 (86%)] train loss: 0.554
+2024-12-09 23:05:46,824 [INFO] Train Epoch: 47 [56448/62998 (90%)] train loss: 0.622
+2024-12-09 23:05:46,851 [INFO] Train Epoch: 47 [59008/62998 (94%)] train loss: 0.591
+2024-12-09 23:05:46,879 [INFO] Train Epoch: 47 [61568/62998 (98%)] train loss: 0.647
+2024-12-09 23:05:47,149 [INFO] Train Epoch: 47, val_acc: 0.909, val_f1: 0.906, val loss: 0.630
+2024-12-09 23:05:47,149 [INFO] info: 9 num epochs without improving
+2024-12-09 23:05:47,278 [INFO] Train Epoch: 48 [128/62998 (0%)] train loss: 0.593
+2024-12-09 23:05:47,307 [INFO] Train Epoch: 48 [2688/62998 (4%)] train loss: 0.606
+2024-12-09 23:05:47,334 [INFO] Train Epoch: 48 [5248/62998 (8%)] train loss: 0.589
+2024-12-09 23:05:47,362 [INFO] Train Epoch: 48 [7808/62998 (12%)] train loss: 0.620
+2024-12-09 23:05:47,389 [INFO] Train Epoch: 48 [10368/62998 (16%)] train loss: 0.597
+2024-12-09 23:05:47,419 [INFO] Train Epoch: 48 [12928/62998 (21%)] train loss: 0.590
+2024-12-09 23:05:47,448 [INFO] Train Epoch: 48 [15488/62998 (25%)] train loss: 0.612
+2024-12-09 23:05:47,475 [INFO] Train Epoch: 48 [18048/62998 (29%)] train loss: 0.542
+2024-12-09 23:05:47,504 [INFO] Train Epoch: 48 [20608/62998 (33%)] train loss: 0.576
+2024-12-09 23:05:47,532 [INFO] Train Epoch: 48 [23168/62998 (37%)] train loss: 0.603
+2024-12-09 23:05:47,559 [INFO] Train Epoch: 48 [25728/62998 (41%)] train loss: 0.613
+2024-12-09 23:05:47,587 [INFO] Train Epoch: 48 [28288/62998 (45%)] train loss: 0.643
+2024-12-09 23:05:47,614 [INFO] Train Epoch: 48 [30848/62998 (49%)] train loss: 0.634
+2024-12-09 23:05:47,641 [INFO] Train Epoch: 48 [33408/62998 (53%)] train loss: 0.587
+2024-12-09 23:05:47,669 [INFO] Train Epoch: 48 [35968/62998 (57%)] train loss: 0.573
+2024-12-09 23:05:47,697 [INFO] Train Epoch: 48 [38528/62998 (61%)] train loss: 0.607
+2024-12-09 23:05:47,724 [INFO] Train Epoch: 48 [41088/62998 (65%)] train loss: 0.580
+2024-12-09 23:05:47,752 [INFO] Train Epoch: 48 [43648/62998 (69%)] train loss: 0.590
+2024-12-09 23:05:47,779 [INFO] Train Epoch: 48 [46208/62998 (73%)] train loss: 0.593
+2024-12-09 23:05:47,805 [INFO] Train Epoch: 48 [48768/62998 (77%)] train loss: 0.615
+2024-12-09 23:05:47,833 [INFO] Train Epoch: 48 [51328/62998 (82%)] train loss: 0.645
+2024-12-09 23:05:47,861 [INFO] Train Epoch: 48 [53888/62998 (86%)] train loss: 0.633
+2024-12-09 23:05:47,888 [INFO] Train Epoch: 48 [56448/62998 (90%)] train loss: 0.597
+2024-12-09 23:05:47,916 [INFO] Train Epoch: 48 [59008/62998 (94%)] train loss: 0.685
+2024-12-09 23:05:47,943 [INFO] Train Epoch: 48 [61568/62998 (98%)] train loss: 0.599
+2024-12-09 23:05:48,186 [INFO] Train Epoch: 48, val_acc: 0.909, val_f1: 0.906, val loss: 0.630
+2024-12-09 23:05:48,186 [INFO] info: 10 num epochs without improving
+2024-12-09 23:05:48,302 [INFO] Train Epoch: 49 [128/62998 (0%)] train loss: 0.595
+2024-12-09 23:05:48,332 [INFO] Train Epoch: 49 [2688/62998 (4%)] train loss: 0.633
+2024-12-09 23:05:48,359 [INFO] Train Epoch: 49 [5248/62998 (8%)] train loss: 0.594
+2024-12-09 23:05:48,386 [INFO] Train Epoch: 49 [7808/62998 (12%)] train loss: 0.617
+2024-12-09 23:05:48,414 [INFO] Train Epoch: 49 [10368/62998 (16%)] train loss: 0.590
+2024-12-09 23:05:48,440 [INFO] Train Epoch: 49 [12928/62998 (21%)] train loss: 0.631
+2024-12-09 23:05:48,468 [INFO] Train Epoch: 49 [15488/62998 (25%)] train loss: 0.638
+2024-12-09 23:05:48,496 [INFO] Train Epoch: 49 [18048/62998 (29%)] train loss: 0.617
+2024-12-09 23:05:48,526 [INFO] Train Epoch: 49 [20608/62998 (33%)] train loss: 0.549
+2024-12-09 23:05:48,553 [INFO] Train Epoch: 49 [23168/62998 (37%)] train loss: 0.670
+2024-12-09 23:05:48,580 [INFO] Train Epoch: 49 [25728/62998 (41%)] train loss: 0.607
+2024-12-09 23:05:48,607 [INFO] Train Epoch: 49 [28288/62998 (45%)] train loss: 0.575
+2024-12-09 23:05:48,635 [INFO] Train Epoch: 49 [30848/62998 (49%)] train loss: 0.610
+2024-12-09 23:05:48,663 [INFO] Train Epoch: 49 [33408/62998 (53%)] train loss: 0.652
+2024-12-09 23:05:48,691 [INFO] Train Epoch: 49 [35968/62998 (57%)] train loss: 0.570
+2024-12-09 23:05:48,718 [INFO] Train Epoch: 49 [38528/62998 (61%)] train loss: 0.607
+2024-12-09 23:05:48,746 [INFO] Train Epoch: 49 [41088/62998 (65%)] train loss: 0.604
+2024-12-09 23:05:48,772 [INFO] Train Epoch: 49 [43648/62998 (69%)] train loss: 0.603
+2024-12-09 23:05:48,800 [INFO] Train Epoch: 49 [46208/62998 (73%)] train loss: 0.595
+2024-12-09 23:05:48,827 [INFO] Train Epoch: 49 [48768/62998 (77%)] train loss: 0.627
+2024-12-09 23:05:48,855 [INFO] Train Epoch: 49 [51328/62998 (82%)] train loss: 0.601
+2024-12-09 23:05:48,884 [INFO] Train Epoch: 49 [53888/62998 (86%)] train loss: 0.587
+2024-12-09 23:05:48,910 [INFO] Train Epoch: 49 [56448/62998 (90%)] train loss: 0.634
+2024-12-09 23:05:48,937 [INFO] Train Epoch: 49 [59008/62998 (94%)] train loss: 0.616
+2024-12-09 23:05:48,964 [INFO] Train Epoch: 49 [61568/62998 (98%)] train loss: 0.583
+2024-12-09 23:05:49,208 [INFO] Train Epoch: 49, val_acc: 0.909, val_f1: 0.906, val loss: 0.630
+2024-12-09 23:05:49,208 [INFO] info: 11 num epochs without improving
+2024-12-09 23:05:49,208 [INFO] Best val f1: 0.907125860503899
+2024-12-09 23:05:49,209 [INFO] ========================= Training Finished =========================
+2024-12-09 23:05:49,442 [INFO] Test F1: 0.9100575546462898

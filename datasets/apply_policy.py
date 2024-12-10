@@ -376,16 +376,19 @@ def classify_packets(raw_data, labels, packets, classifier, window_size, mean, s
 	for packet_i, (at,win) in enumerate(zip(packets[0],packets[1])):
 		# get next window
 		sample_idx = int(at*25)
+		# print(f"sample_idx: {last_prediction_idx}, sample_idx: {sample_idx}")
 		
 		win = torch.tensor(win).float().T.unsqueeze(0)
 		
 		# extend previous prediction
 		if packet_i > 0:
+			# print(last_prediction_idx-first_sample_idx,last_pred)
 			count += sample_idx-last_prediction_idx
 			# extend output to duration of prediction
 			dense_outputs_policy.append(last_out.repeat(sample_idx-last_prediction_idx,1))
 			dense_preds_policy[last_prediction_idx-first_sample_idx:sample_idx-first_sample_idx] = last_pred
-
+		# if packet_i > 5:
+		# 	exit()
 		# print(f"first_sample_idx:{first_sample_idx}, packet_i:{packet_i}, at_sample:{int(at*25)}, sample_idx:{sample_idx}, count: {count}")
 
 		# make prediction
