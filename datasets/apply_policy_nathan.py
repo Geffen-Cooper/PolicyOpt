@@ -82,7 +82,7 @@ class Device(nn.Module):
 
 		return data_seg, label_seg
 
-	def forward_sensor(self, data, policy_mode=None, training=True):
+	def forward_sensor(self, data, policy_mode=None):
 
 		if policy_mode is None:
 			policy_mode = self.policy_mode
@@ -97,7 +97,7 @@ class Device(nn.Module):
 		e_harvest = np.concatenate([np.array([0]),np.diff(self.e_out)])
 
 		# energy state at each time step
-		e_trace = np.zeros(self.T)
+		e_trace = torch.zeros(self.T, dtype=torch.float32, device=self.device)
 		e_input = torch.zeros(self.HISTORY_SIZE)-1
 
 		# device state
@@ -236,7 +236,7 @@ class Device(nn.Module):
 
 						# policy inputs are buffers of the last HISTORY_SIZE energy traces and policy outputs 
 						policy_inputs = torch.cat([
-							torch.tensor(e_input, dtype=torch.float32, device=self.device), 
+							e_input, 
 							policy_outputs[k-self.HISTORY_SIZE:k]
 						])
 
@@ -271,10 +271,7 @@ class Device(nn.Module):
 		
 		packets = self._obtain_packets(df, valid, actions)
 
-		if training:
-			return packets, e_trace, actions 
-		else:
-			return packets, e_trace
+		return packets, e_trace, actions 
 		
 	def _obtain_packets(self, df, valid, actions):
 		''' ----------- Package Data after applying policies -------- '''		
@@ -362,7 +359,7 @@ class Device(nn.Module):
 
 		# classify provided packet and extend predictions
 		outputs_policy = []
-		preds_policy = []
+		preds_policy = torch.tensor([], dtype=torch.long, device=self.device)
 		targets_policy = []
 
 		for i, (t,win) in enumerate(zip(*packets)):
@@ -371,11 +368,11 @@ class Device(nn.Module):
 			if i < len(packets[0])-1:
 				count = int(packets[0][i+1] - packets[0][i])
 				outputs_policy.append(outputs[i].repeat(count, 1))
-				preds_policy.append(preds[i].repeat(count))
+				preds_policy = torch.cat((preds_policy, preds[i].repeat(count)))
 			else:
 				count = int(len(labels) - (packets[0][i]-self.packet_size+1))
 				outputs_policy.append(outputs[i].repeat(count, 1))
-				preds_policy.append(preds[i].repeat(count))
+				preds_policy = torch.cat((preds_policy, preds[i].repeat(count)))
 
 		targets_policy = labels[int(packets[0][0])-self.packet_size+1:]
 
@@ -388,25 +385,49 @@ class Device(nn.Module):
 	
 	def forward(self, data, labels, training):
 		if training:
-			train_segment_data, train_segment_labels = self._sample_segment(data, labels)
+			segment_data, segment_labels = self._sample_segment(data, labels)
 
 			# add time axis
-			train_t_axis = torch.arange(len(train_segment_labels), dtype=torch.float64, device=self.device)/self.FS
-			train_t_axis = train_t_axis.reshape(-1,1)
+			t_axis = torch.arange(len(segment_labels), dtype=torch.float64, device=self.device)/self.FS
+			t_axis = t_axis.reshape(-1,1)
 
 			# add the time axis to the data
-			train_full_data_window = torch.cat((train_t_axis, train_segment_data), dim=1)
-			learned_packets, e_trace, actions = self.forward_sensor(train_full_data_window, training=training)
+			train_full_data_window = torch.cat((t_axis, segment_data), dim=1)
+			learned_packets, e_trace, actions = self.forward_sensor(train_full_data_window)
 
 			# If nothing is sampled, return None
 			if learned_packets[0] is None:
 				# Policy did not sample at all
 				print(f"Did not sample")
-				return (None, None)
+				return (None, None, None, None, True)
 			elif learned_packets[0].shape[0] != learned_packets[1].shape[0]:
 				print(f"Data error. arrive_times.shape[0] = {learned_packets[0].shape[0]} but packets.shape[0] = {learned_packets[1].shape[0]}")
-				return (None, None)
+				return (None, None, None, None, True)
 
-			outputs_policy, classifier_preds, classifier_targets = self.forward_classifier(train_segment_labels,learned_packets)
+			outputs_policy, classifier_preds, classifier_targets = self.forward_classifier(segment_labels,learned_packets)
 
-			return classifier_preds, classifier_targets
+			# print("Classifier preds shape", classifier_preds.shape)
+
+			rewards = torch.where(classifier_preds == classifier_targets, 1, 0)
+			rewards = torch.cumsum(rewards, dim=0)	/ torch.arange(1,len(rewards)+1) # cumulative mean
+			full_states = torch.stack((e_trace, actions), dim=1)
+
+			states = torch.tensor([], dtype=torch.float32, device=self.device)
+			for i in range(full_states.shape[0] - self.HISTORY_SIZE):
+				current_state = full_states[i : i+self.HISTORY_SIZE].unsqueeze(0)
+				states = torch.cat((states, current_state))
+			states = torch.cat((states, 9999*torch.ones((1,self.HISTORY_SIZE,2)))) 
+
+			state = states[:-1]
+			actions = actions[self.HISTORY_SIZE:]
+			# pad rewards with zero (it is shorter because classifier has not sent)
+			rewards = torch.cat((torch.zeros(state.shape[0]-rewards.shape[0]), rewards))
+			next_state = states[1:]
+			truncated = False
+
+			# print("state shape", state.shape)
+			# print("actions shape", actions.shape)
+			# print("next state shape", next_state.shape)
+			# print("rewards shape", rewards.shape)
+
+			return state, actions, rewards, next_state, truncated

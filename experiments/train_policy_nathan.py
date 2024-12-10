@@ -31,6 +31,7 @@ class Trainer():
 		self._build_optimizer(lr)
 
 		self.memory = ReplayMemory(self.train_cfg['replay_buffer_capacity'])
+		self.criterion = nn.SmoothL1Loss() # the loss function
 
 		self.fig, self.axs = plt.subplots(1,1)
 
@@ -78,68 +79,104 @@ class Trainer():
 			seed=self.seed,
 		)		
 
-	def calculate_loss(self, y_hat, y) -> float:
-		return sum([len(torch.where(y_traj == y_hat_traj)[0]) for (y_hat_traj,y_traj) in zip(y_hat,y)])
-
 	def optimize_model(self):
-		if len(self.memory < self.train_cfg['batch_size']):
+		if len(self.memory) < self.train_cfg['batch_size']:
 			return
 		
 		transitions = self.memory.sample(self.train_cfg['batch_size'])
-
 		batch = Transition(*zip(*transitions))
 		state_batch = torch.cat(batch.state)
-		last_energy_batch = torch.cat(batch.last_energy)
+		state_energy_batch = state_batch[:,-1,0]
+		next_state_energy_batch = torch.cat(batch.next_state)[:,-1,0]
 		action_batch = torch.cat(batch.action)
 		reward_batch = torch.cat(batch.reward)
 
-		enough_energy_mask = torch.where(last_energy_batch >= self.sensor.threshold)
-		non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                          batch.next_state)), device=device, dtype=torch.bool)
-		non_final_next_states = torch.cat([s for s in batch.next_state
-													if s is not None])
-		# non final next states with enough energy
-		valid_states = torch.cat([s for s,e in zip(batch.state, batch.last_energy) if e > self.sensor.threshold and s is not None])
-		
-		state_action_values = self.sensor.Q_network(valid_states).gather(1, -1)
+		# print("State batch print", state_batch.shape)
+		# print("Last energy batch shape", state_energy_batch.shape)
+		# print("Action batch shape", action_batch.shape)
+		# print("Reward batch shape", reward_batch.shape)
 
-		next_state_values = torch.zeros(self.train_cfg['batch_size'], device=device)
+		state_energy_mask = torch.where(state_energy_batch >= self.sensor.thresh, 1, 0)
+		next_state_energy_mask = torch.where(next_state_energy_batch >= self.sensor.thresh, 1, 0)
+
+		non_final_mask = torch.tensor([], dtype=torch.bool, device=self.sensor.device)
+		for b in batch.next_state:
+			for s in b:
+				if s.all() == 9999: # This is for None
+					non_final_mask = torch.cat((non_final_mask, torch.tensor([0])))
+				else:
+					non_final_mask = torch.cat((non_final_mask, torch.tensor([1])))
+		
+		non_final_next_states = torch.cat([s for s in batch.next_state if s.all() != 9999])
+
+		# non final next states with enough energy
+		# print("non final next states shape", non_final_next_states.shape)
+		# print("state energy mask shape", state_energy_mask.shape)
+		# print("non final mask shape", non_final_mask.shape)
+		# print("next state energy mask shape", next_state_energy_mask.shape)
+
+		valid_mask = torch.logical_and(non_final_mask, next_state_energy_mask)
+		valid_states = state_batch[state_energy_mask]
+		valid_next_states = non_final_next_states[valid_mask]
+
+		if valid_next_states.shape[0] == 0:
+			print(valid_mask.all() == 0.0)
+			print(valid_next_states.shape)
+			return
+
+		# print("valid states shape", valid_states.shape)
+		# print("valid next states shape", valid_next_states.shape)
+
+		action_idx = torch.where(action_batch, 1, 0).unsqueeze(1)
+
+		print("How many times did the policy send?", sum(action_idx))
+		
+		state_action_values = self.sensor.Q_network(valid_states.flatten(start_dim=1)).gather(0, action_idx)
+		# print("State action values shape", state_action_values.shape)
+		# print("Action idx shape", action_idx.shape)
+
+		# next_state_values = torch.zeros(self.train_cfg['batch_size'], device=self.sensor.device) # TODO
+		next_state_values = torch.zeros(state_batch.shape[0], device=self.sensor.device)
 		with torch.no_grad():
-			# TODO: add enough_energy_mask - only feedback with decisions made when enough_energy_mask is valid
-			next_state_values[non_final_mask] = self.sensor.Q_network(non_final_next_states).max(1).values
+			# only evaluate the Q network when enough_energy_mask is valid
+			valid_next_state_values = self.sensor.Q_network(valid_next_states.flatten(start_dim=1))
+			# print("valid next state action values shape", valid_next_state_values.shape)
+			next_state_values[valid_mask] = torch.max(valid_next_state_values, 1).values
 		# Compute the expected Q values
+		# print("next state values shape", next_state_values.shape)
 		expected_state_action_values = (next_state_values * self.train_cfg['gamma']) + reward_batch
+		# print("expected_state action values", expected_state_action_values)
 
 		# Compute Huber loss
-		criterion = nn.SmoothL1Loss()
-		loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+		loss = self.criterion(state_action_values, expected_state_action_values.unsqueeze(1))
 
-		# Optimize the model
-		self.opt.zero_grad()
-		loss.backward()
-		# In-place gradient clipping
-		torch.nn.utils.clip_grad_value_(self.sensor.Q_network.parameters(), 100)
-		self.opt.step()
+		return loss
 
 	def train_one_epoch(self, iteration, writer):
 		self.sensor.train()
 		loss = 0.0
 		train_data, train_labels = self.data['train']
 
-		for batch_idx in range(self.train_cfg['batch_size']):
-			self.save_transition() # TODO	
-			loss += self.optimize_model()		
-			# classifier_preds, classifier_targets = self.sensor.forward(train_data, train_labels, training=True)
-			
-			# if classifier_preds is None:
-			# 	print(f"No packets sent on iteration {iteration} batch index {batch_idx}")
-			# 	continue
-			# loss += self.calculate_loss(classifier_preds, classifier_targets)
-
-		if loss == 0.0:
-			print("Iteration {} did not sample at all".format(iteration))
+		state, action, reward, next_state, truncated = self.sensor.forward(train_data, train_labels, training=True)
+		if truncated: 
 			return
+		self.memory.push(state, action, reward, next_state)
 
+		for batch_idx in range(self.train_cfg['batch_size']):
+			batch_loss = self.optimize_model()
+			if batch_loss is not None:
+				loss += batch_loss
+		
+		if loss == 0.0:
+			return
+		
+		# Optimize the model
+		self.opt.zero_grad()
+		loss.backward()
+		# In-place gradient clipping
+		torch.nn.utils.clip_grad_value_(self.sensor.Q_network.parameters(), 100)
+		self.opt.step()
+		
 		# train_f1 = f1_score(
 		# 	classifier_targets.detach().cpu().numpy(), classifier_preds.detach().cpu().numpy(), average='macro'
 		# 	)
@@ -159,21 +196,22 @@ class Trainer():
 			self.train_one_epoch(iteration, writer)
 			# validation
 			if iteration != 0 and iteration % self.train_cfg['val_every_epochs'] == 0:
-				val_loss = self.validate(iteration, writer, *self.data['val'])
+				val_loss = self.validate(iteration, writer, *self.data['val'], self.train_cfg['val_iters'])
 				if val_loss['f1'] > best_val_f1:
 					best_val_f1 = val_loss['f1']
 					torch.save({
 						'epoch': iteration + 1,
 						'model_state_dict': self.sensor.state_dict(),
 						'val_f1': val_loss['f1'],
-						'val_classification_loss': val_loss['loss'],
+						'val_classification_accuracy': val_loss['avg_reward'],
 					}, self.sensor_path)
 		
 		self.validate(self, iteration+1, writer, *self.data['test'])
 	
 	def validate(self, iteration, writer, data, labels, val_iterations):
 		self.sensor.eval()
-		val_loss = 0.0
+		learned_reward = 0.0
+		opp_reward = 0.0
 		val_policy_f1 = 0.0
 		val_opp_f1 = 0.0
 
@@ -188,7 +226,7 @@ class Trainer():
 
 				learned_packets, learned_e_trace, actions = self.sensor.forward_sensor(val_full_data_window)
 				
-				if len(learned_packets[0]) == 0:
+				if learned_packets[0] is None:
 					# Policy did not sample at all
 					print(f"Iteration {iteration}: Policy did not sample at all during validation!")
 					continue
@@ -196,11 +234,12 @@ class Trainer():
 				opp_packets, opp_e_trace, opp_actions = self.sensor.forward_sensor(val_full_data_window, policy_mode="opportunistic")
 				
 
-				outputs_learned, preds_learned, targets_learned = self.sensor.forward_classifier(val_segment_data,val_segment_labels,learned_packets)
+				outputs_learned, preds_learned, targets_learned = self.sensor.forward_classifier(val_segment_labels,learned_packets)
 
-				outputs_opp, preds_opp, targets_opp = self.sensor.forward_classifier(val_segment_data,val_segment_labels,opp_packets)
+				outputs_opp, preds_opp, targets_opp = self.sensor.forward_classifier(val_segment_labels,opp_packets)
 
-				val_loss += self.calculate_loss(targets_learned, preds_learned)
+				learned_reward += torch.where(preds_learned == targets_learned, 1, 0).sum() / len(preds_learned)
+				opp_reward += torch.where(preds_opp == targets_opp, 1, 0).sum() / len(preds_opp)
 
 				val_policy_f1 += f1_score(
 					targets_learned.detach().cpu().numpy(), preds_learned.detach().cpu().numpy(), average='macro'
@@ -209,7 +248,8 @@ class Trainer():
 					targets_opp.detach().cpu().numpy(), preds_opp.detach().cpu().numpy(), average='macro'
 				)
 		
-		val_loss /= val_iterations
+		learned_reward /= val_iterations
+		opp_reward /= val_iterations
 		val_policy_f1 /= val_iterations
 		val_opp_f1 /= val_iterations
 
@@ -218,11 +258,12 @@ class Trainer():
 		writer.add_scalar("val_metric/f1_difference", val_policy_f1 - val_opp_f1, iteration)
 		writer.add_scalar("val_metric/policy_f1", val_policy_f1, iteration)
 		writer.add_scalar("val_metric/opp_f1", val_opp_f1, iteration)
-		writer.add_scalar("val_metric/loss", val_loss, iteration)
+		writer.add_scalar("val_metric/policy_reward", learned_reward, iteration)
+		writer.add_scalar("val_metric/opp_reward", opp_reward, iteration)
 		
-		policy_sample_times = (learned_packets[0]).long() - self.sensor.packet_size + 1
-		opp_sample_times = (opp_packets[0]).long() - self.sensor.packet_size + 1
-		self.axs.axhline(y=5.12e-5, linestyle='--', color='green') # Opportunistic policy will send at this energy
+		policy_sample_times = (learned_packets[0]).long()
+		opp_sample_times = (opp_packets[0]).long()
+		self.axs.axhline(y=self.sensor.thresh, linestyle='--', color='green') # Opportunistic policy will send at this energy
 		self.axs.plot(val_t_axis, learned_e_trace)
 		self.axs.plot(val_t_axis, opp_e_trace, linestyle='--')
 		self.axs.scatter(val_t_axis[policy_sample_times], learned_e_trace[policy_sample_times], label='policy')
@@ -236,7 +277,7 @@ class Trainer():
 
 		val_loss = {
 			'f1': val_policy_f1,
-			'loss': val_loss,
+			'avg_reward': learned_reward,
 		}
 
 		return val_loss
@@ -277,10 +318,10 @@ if __name__ == '__main__':
 	}
 
 	train_cfg = {
-		'batch_size': 32,
+		'batch_size': 1,
 		'epochs': 5_000,
-		'val_duration': 100,
-		'val_every_epochs': 50,	
+		'val_iters': 10,
+		'val_every_epochs': 25,	
 		'gamma': 0.99,
 		'replay_buffer_capacity': 10_000,	
 	}

@@ -1,4 +1,4 @@
-import torch
+import random
 import torch.nn as nn
 import torch.nn.functional as F
 from collections import deque, namedtuple
@@ -32,7 +32,6 @@ class SimpleNet(nn.Module):
     
 
     def forward(self, x):
-        print(x.shape)
         # (3 x 8) --> (8 x 8)
         # print(x.shape)
         x = F.relu(self.conv1(x))
