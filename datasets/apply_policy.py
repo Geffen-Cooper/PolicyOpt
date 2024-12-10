@@ -76,6 +76,7 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 	# get energy as function of samples
 	t_out, p_out = eh.power(df)
 	e_out = eh.energy(t_out, p_out)
+	np.save("e_out.npy",e_out)
 	valid, thresh = eh.generate_valid_mask(e_out, packet_size)
 
 	# assume max energy we can store is ~ 3*thresh needed to sample/TX
@@ -118,7 +119,8 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 
 	# iterate over energy values
 	while k < len(e_trace):
-		
+		# print(k)
+		# print(k)
 		# update energy state
 		e_trace[k] = e_trace[k-1] + e_harvest[k] - LEAKAGE_PER_SAMPLE
 		# print(k, e_trace[k],STATE,thresh,e_harvest[k],LEAKAGE_PER_SAMPLE)
@@ -137,12 +139,9 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 			# OFF -> ON_CANT_TX
 			if STATE == DeviceState.OFF: # turn on when have init overhead
 				# OFF -> ON_CANT_TX
-				if e_trace[k] >= 5*LEAKAGE_PER_SAMPLE + init_overhead:
+				if e_trace[k] >= 5*LEAKAGE_PER_SAMPLE + init_overhead and k+1 < len(e_trace):
 					STATE = DeviceState.ON_CANT_TX
-					try:
-						e_trace[k+1] = e_trace[k] - init_overhead # apply overhead instantly
-					except:
-						break
+					e_trace[k+1] = e_trace[k] - init_overhead # apply overhead instantly
 					k += 2
 				# OFF -> OFF
 				else:
@@ -293,44 +292,44 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 					k += 1
 
 			
-		''' ----------- Package Data after applying policies -------- '''
+	''' ----------- Package Data after applying policies -------- '''
 
-		# masking the data based on energy
-		for acc in 'xyz':
-			df[acc+'_eh'] = df[acc] * valid
+	# masking the data based on energy
+	for acc in 'xyz':
+		df[acc+'_eh'] = df[acc] * valid
 
-		# get the transition points of the masked data to see where packets start and end
-		og_data = df[acc+'_eh'].values
-		rolled_data = np.roll(og_data, 1)
-		rolled_data[0] = np.nan # in case we end halfway through a valid packet
-		nan_to_num_transition_indices = np.where(~np.isnan(og_data) & np.isnan(rolled_data))[0] # arrival idxs
-		num_to_nan_transition_indices = np.where(np.isnan(og_data) & ~np.isnan(rolled_data))[0] # ending idxs
+	# get the transition points of the masked data to see where packets start and end
+	og_data = df[acc+'_eh'].values
+	rolled_data = np.roll(og_data, 1)
+	rolled_data[0] = np.nan # in case we end halfway through a valid packet
+	nan_to_num_transition_indices = np.where(~np.isnan(og_data) & np.isnan(rolled_data))[0] # arrival idxs
+	num_to_nan_transition_indices = np.where(np.isnan(og_data) & ~np.isnan(rolled_data))[0] # ending idxs
+	
+	# now get the actually sampled data as a list of windows
+	arr = df[['x_eh','y_eh','z_eh']].values
+	packet_data = [                                                                               # this zip operation is important because if we end halfway through a packet it is skipped (number of starts and ends must match)
+					arr[packet_start_idx : packet_end_idx] for packet_start_idx,packet_end_idx in zip(nan_to_num_transition_indices,num_to_nan_transition_indices)
+					]
+	
+	# get the arrival time of each packet (note that the arrival time is the end of the data)
+	time_idxs = df['time']
+	arrival_times = [ 
+					time_idxs[packet_end_idx-1] for packet_end_idx in num_to_nan_transition_indices
+					]
+	
+	# each item in the list is a packet_size x 3 array, so we just stack into one array
+	if len(packet_data) > 0:
+		packet_data = np.stack(packet_data)
 		
-		# now get the actually sampled data as a list of windows
-		arr = df[['x_eh','y_eh','z_eh']].values
-		packet_data = [                                                                               # this zip operation is important because if we end halfway through a packet it is skipped (number of starts and ends must match)
-						arr[packet_start_idx : packet_end_idx] for packet_start_idx,packet_end_idx in zip(nan_to_num_transition_indices,num_to_nan_transition_indices)
-						]
-		
-		# get the arrival time of each packet (note that the arrival time is the end of the data)
-		time_idxs = df['time']
-		arrival_times = [ 
-						time_idxs[packet_end_idx-1] for packet_end_idx in num_to_nan_transition_indices
-						]
-		
-		# each item in the list is a packet_size x 3 array, so we just stack into one array
-		if len(packet_data) > 0:
-			packet_data = np.stack(packet_data)
-			
-		# we make the list into an array of packet_size x 1
-		if len(arrival_times) > 0:
-			arrival_times = np.stack(arrival_times)
-		else:
-			arrival_times = np.array(arrival_times)
-		
-		# store as a tuple
-		# entry 0 is P x 1 and entry 1 is P x packet_size x 3
-		packets = (arrival_times,packet_data)
+	# we make the list into an array of packet_size x 1
+	if len(arrival_times) > 0:
+		arrival_times = np.stack(arrival_times)
+	else:
+		arrival_times = np.array(arrival_times)
+	
+	# store as a tuple
+	# entry 0 is P x 1 and entry 1 is P x packet_size x 3
+	packets = (arrival_times,packet_data)
 	# import matplotlib.pyplot as plt
 	# plt.plot(e_out)
 	# plt.plot(e_trace)
@@ -345,7 +344,7 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 
 
 # given the output of a policy, get the classification results
-def classify_packets(raw_data, labels, packets, classifier, window_size):
+def classify_packets(raw_data, labels, packets, classifier, window_size, mean, std):
 	
 	first_sample_idx = int(packets[0][0]*25)
 
@@ -361,6 +360,7 @@ def classify_packets(raw_data, labels, packets, classifier, window_size):
 		dense_targets[win_i] = labels[sample_idx-window_size+1] # last sample in packet
 		# make prediction
 		with torch.no_grad():
+			win = ((win-mean.unsqueeze(0).unsqueeze(2))/(std.unsqueeze(0).unsqueeze(2) + 1e-5)).float()
 			out = classifier(win)
 		dense_outputs.append(out)
 		dense_preds[win_i] = torch.argmax(out)
@@ -376,20 +376,24 @@ def classify_packets(raw_data, labels, packets, classifier, window_size):
 	for packet_i, (at,win) in enumerate(zip(packets[0],packets[1])):
 		# get next window
 		sample_idx = int(at*25)
+		# print(f"sample_idx: {last_prediction_idx}, sample_idx: {sample_idx}")
 		
 		win = torch.tensor(win).float().T.unsqueeze(0)
 		
 		# extend previous prediction
 		if packet_i > 0:
+			# print(last_prediction_idx-first_sample_idx,last_pred)
 			count += sample_idx-last_prediction_idx
 			# extend output to duration of prediction
 			dense_outputs_policy.append(last_out.repeat(sample_idx-last_prediction_idx,1))
-			dense_preds_policy[last_prediction_idx:sample_idx] = last_pred
-
+			dense_preds_policy[last_prediction_idx-first_sample_idx:sample_idx-first_sample_idx] = last_pred
+		# if packet_i > 5:
+		# 	exit()
 		# print(f"first_sample_idx:{first_sample_idx}, packet_i:{packet_i}, at_sample:{int(at*25)}, sample_idx:{sample_idx}, count: {count}")
 
 		# make prediction
 		with torch.no_grad():
+			win = ((win-mean.unsqueeze(0).unsqueeze(2))/(std.unsqueeze(0).unsqueeze(2) + 1e-5)).float()
 			out = classifier(win)
 		last_out = out
 		last_pred = torch.argmax(out)
@@ -399,7 +403,7 @@ def classify_packets(raw_data, labels, packets, classifier, window_size):
 	# extend on the last one
 	count += (len(labels)-last_prediction_idx)
 	dense_outputs_policy.append(last_out.repeat(len(labels)-last_prediction_idx,1))
-	dense_preds_policy[last_prediction_idx:] = last_pred
+	dense_preds_policy[last_prediction_idx-first_sample_idx:] = last_pred
 
 	# print(f"first_sample_idx:{first_sample_idx}, packet_i:{packet_i}, at_sample:{int(at*25)}, sample_idx:{sample_idx}, count: {count}")
 
