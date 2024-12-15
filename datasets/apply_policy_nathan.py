@@ -40,11 +40,7 @@ class Device(nn.Module):
 	def _build_nets(self, sensor_net_cfg):
 		if self.policy_mode == "conservative":
 			""" Learned threshold energy """
-			self.alpha = nn.Parameter(torch.Tensor([1e-5]), requires_grad=True)
-		elif self.policy_mode == "opportunistic":
-			self.alpha = torch.Tensor([0.0])
 		elif self.policy_mode == "learned_policy":
-			self.alpha = torch.Tensor([0.0])
 			self.Q_network = DiscreteQNetwork(2, **sensor_net_cfg)
 	
 	def preprocess_data(self, data_window):
@@ -53,7 +49,7 @@ class Device(nn.Module):
 		df = pd.DataFrame(data_window[:,channels],columns=['time', 'x', 'y','z'])
 		return df
 	
-	def preprocess_constants(self, df):
+	def preprocess_constants(self, params, df):
 		self.dt = df['time'][1] - df['time'][0]
 		self.LEAKAGE_PER_SAMPLE = self.leakage*self.dt
 		# get energy as function of samples
@@ -67,7 +63,7 @@ class Device(nn.Module):
 
 		# assume a linear energy usage over the course of a packet
 		# i.e., the quantity thresh/packet_size id used per sample. 
-		self.linear_usage = torch.linspace(0,self.thresh+self.alpha.item(),self.packet_size+1)[1:]
+		self.linear_usage = torch.linspace(0,self.thresh,self.packet_size+1)[1:]
 	
 	def _sample_segment(self, data, labels):
 		duration = torch.randint(low=self.DURATION_RANGE[0], high=self.DURATION_RANGE[1], size=(), generator=self.g, device=self.device)*self.FS
@@ -82,13 +78,18 @@ class Device(nn.Module):
 
 		return data_seg, label_seg
 
-	def forward_sensor(self, data, policy_mode=None):
-
+	def forward_sensor(self, params, data, policy_mode=None):
 		if policy_mode is None:
 			policy_mode = self.policy_mode
-		
+
+		# Initialize params
+		alpha = params[0]
+		tau = int(params[1])
+
+		# Preprocess data to a Pandas dataframe		
 		df = self.preprocess_data(data)
-		self.preprocess_constants(df)
+		self.preprocess_constants(params, df)
+
 		# create a mask of seen and unseen data
 		valid = np.empty(self.T)
 		valid[:] = np.nan
@@ -109,8 +110,6 @@ class Device(nn.Module):
 
 		# energy starts from 0 at time step 0 so simulate from timestep 1
 		k=1
-
-		startup_time = len(e_trace)
 		
 		# iterate over energy values
 		while k < len(e_trace):
@@ -145,27 +144,21 @@ class Device(nn.Module):
 				# ON_CANT_TX -> ON_CAN_TX, ON_CANT_TX -> OFF, ON_CANT_TX -> ON_CANT_TX
 				elif STATE == DeviceState.ON_CANT_TX:
 					# ON_CANT_TX -> ON_CAN_TX
-					if e_trace[k] >= self.thresh + self.alpha + 5*self.LEAKAGE_PER_SAMPLE:
+					if e_trace[k] >= self.thresh + alpha + 5*self.LEAKAGE_PER_SAMPLE:
 						STATE = DeviceState.ON_CAN_TX
 						# we are within one packet of the end of the data
 						if k + self.packet_size + 1 >= len(e_trace):
-							# actions[k] = True
-							# valid[k+1:] = 1
-							# e_trace[k+1:] = (-linear_usage[:len(e_trace)-k-1] + e_harvest[k+1:]) + e_trace[k]
 							k += (self.packet_size+1)
 							break
 						# once thresh is reached, we start sampling on the next sample
 						actions[k] = True
 						valid[k+1:k+1+self.packet_size] = 1
-
 						# Set policy_outputs[k] = 1.0 since policy sent packet
 						updated_policy_outputs = policy_outputs.clone()
 						updated_policy_outputs[k] = 1.0
 						policy_outputs = updated_policy_outputs
-
 						# we apply linear energy usage for each sample and get harvested amount each step
 						e_trace[k+1:k+1+self.packet_size] = (-self.linear_usage[:] + e_harvest[k+1:k+1+self.packet_size]) + e_trace[k]
-						
 						k += (self.packet_size+1)
 					# ON_CANT_TX -> OFF
 					elif e_trace[k] == 0:
@@ -180,9 +173,24 @@ class Device(nn.Module):
 					if e_trace[k] == 0: # device died
 						STATE = DeviceState.OFF
 						k += 1
-					elif e_trace[k] < self.thresh + self.alpha:
+					elif e_trace[k] < self.thresh:
 						STATE = DeviceState.ON_CANT_TX
 						k += 1
+					elif e_trace[k - tau] >= e_trace[k]:
+						# we are within one packet of the end of the data
+						if k + self.packet_size + 1 >= len(e_trace):
+							k += (self.packet_size+1)
+							break
+						# once thresh is reached, we start sampling on the next sample
+						actions[k] = True
+						valid[k+1:k+1+self.packet_size] = 1
+						# Set policy_outputs[k] = 1.0 since policy sent packet
+						updated_policy_outputs = policy_outputs.clone()
+						updated_policy_outputs[k] = 1.0
+						policy_outputs = updated_policy_outputs
+						# we apply linear energy usage for each sample and get harvested amount each step
+						e_trace[k+1:k+1+self.packet_size] = (-self.linear_usage[:] + e_harvest[k+1:k+1+self.packet_size]) + e_trace[k]
+						k += (self.packet_size+1)					
 
 			'''Learned Policy'''
 			if policy_mode == 'learned_policy':
@@ -385,6 +393,7 @@ class Device(nn.Module):
 	
 	def forward(self, data, labels, training):
 		if training:
+			params = [0.0, 0.0] # this is the same as opportunistic
 			segment_data, segment_labels = self._sample_segment(data, labels)
 
 			# add time axis
@@ -393,7 +402,7 @@ class Device(nn.Module):
 
 			# add the time axis to the data
 			train_full_data_window = torch.cat((t_axis, segment_data), dim=1)
-			learned_packets, e_trace, actions = self.forward_sensor(train_full_data_window)
+			learned_packets, e_trace, actions = self.forward_sensor(params, train_full_data_window)
 
 			# If nothing is sampled, return None
 			if learned_packets[0] is None:
@@ -431,3 +440,46 @@ class Device(nn.Module):
 			# print("rewards shape", rewards.shape)
 
 			return state, actions, rewards, next_state, truncated
+	
+	def forward_zeroth(self, params, data, labels, training):
+		if training:
+			learned_packets, e_trace, actions = self.forward_sensor(params, data)
+
+			# If nothing is sampled, return None
+			if learned_packets[0] is None:
+				# Policy did not sample at all
+				print(f"Did not sample")
+				return 0.0
+			elif learned_packets[0].shape[0] != learned_packets[1].shape[0]:
+				print(f"Data error. arrive_times.shape[0] = {learned_packets[0].shape[0]} but packets.shape[0] = {learned_packets[1].shape[0]}")
+				return 0.0
+
+			outputs_policy, classifier_preds, classifier_targets = self.forward_classifier(labels,learned_packets)
+
+			# print("Classifier preds shape", classifier_preds.shape)
+
+			rewards = torch.where(classifier_preds == classifier_targets, 1, 0)
+			full_states = torch.stack((e_trace, actions), dim=1)
+
+			states = torch.tensor([], dtype=torch.float32, device=self.device)
+			for i in range(full_states.shape[0] - self.HISTORY_SIZE):
+				current_state = full_states[i : i+self.HISTORY_SIZE].unsqueeze(0)
+				states = torch.cat((states, current_state))
+			states = torch.cat((states, 9999*torch.ones((1,self.HISTORY_SIZE,2)))) 
+
+			state = states[:-1]
+			actions = actions[self.HISTORY_SIZE:]
+			# pad rewards with zero (it is shorter because classifier has not sent)
+			rewards = torch.cat((torch.zeros(state.shape[0]-rewards.shape[0]), rewards))
+			next_state = states[1:]
+			truncated = False
+
+			rewards = torch.sum(rewards) / len(rewards)
+
+
+			# print("state shape", state.shape)
+			# print("actions shape", actions.shape)
+			# print("next state shape", next_state.shape)
+			# print("rewards shape", rewards.shape)
+
+			return rewards

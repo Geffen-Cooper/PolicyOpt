@@ -1,9 +1,6 @@
-import random
 import torch.nn as nn
 import torch.nn.functional as F
-from collections import deque, namedtuple
-from ptflops import get_model_complexity_info
-
+# from ptflops import get_model_complexity_info
 
 class EnergyPolicy(nn.Module):
     def __init__(self,in_dim, hidden_dim=32):
@@ -106,20 +103,4 @@ class DiscreteQNetwork(nn.Module):
 
     def forward(self, x):
         return self.model(x)
-    
-Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state'))
-
-class ReplayMemory():
-    def __init__(self, capacity):
-        self.memory = deque([], maxlen=capacity) 
-    
-    def push(self, *args):
-        """Save a transition"""
-        self.memory.append(Transition(*args))
-
-    def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
-
-    def __len__(self):
-        return len(self.memory)
 

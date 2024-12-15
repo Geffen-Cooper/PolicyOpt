@@ -1,0 +1,77 @@
+import os
+import torch
+import matplotlib.pyplot as plt
+
+from datetime import datetime
+from experiments.models import SimpleNet
+from datasets.energy_harvest import EnergyHarvester
+from datasets.apply_policy_nathan import Device
+
+from experiments.dataloader import load_data
+
+class DeviceTrainer():
+	def __init__(self, exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, lr, seed):
+		self.policy_mode = policy_mode
+
+		self.load_path = load_path
+		self.seed = seed
+		self.device = device
+
+		self.train_cfg = train_cfg
+
+		self._setup_paths(load_path, exp_name)
+		self._load_data()
+		self._load_classifier(**classifier_cfg)
+		self._load_sensor(**sensor_cfg)
+		self._build_optimizer(lr)
+
+		self.fig, self.axs = plt.subplots(1,1)
+
+	def _setup_paths(self, load_path, exp_name):
+		self.root_dir = os.path.dirname(os.path.dirname(__file__))
+		if load_path is None:
+			now = datetime.now()
+			start_time = now.strftime("%Y-%m-%d_%H-%M-%S")
+			self.log_dir = os.path.join(self.root_dir,"saved_data/runs",f"{exp_name}")+"_"+start_time
+		else:
+			self.log_dir = load_path
+		
+		# path where model parameters will be saved
+		self.sensor_path = os.path.join(self.log_dir, "model_params.pt")
+		self.data_dir = os.path.join(self.root_dir,"datasets/dsads_contig/merged_preprocess")
+
+		self.plot_dir = os.path.join(self.log_dir, "plots")
+
+		if not os.path.isdir(self.plot_dir): 
+			os.makedirs(self.plot_dir)
+	
+	def _load_data(self):
+		self.data = load_data(self.data_dir, self.device)
+	
+	def _build_optimizer(self, lr):
+		self.opt = torch.optim.Adam(self.sensor.parameters(),lr=lr)
+
+	def _load_classifier(self, path, num_activities):
+		self.classifier = SimpleNet(3,num_activities).to(self.device)
+		ckpt_path = os.path.join(self.root_dir,path)
+		self.classifier.load_state_dict(torch.load(ckpt_path)['model_state_dict'])
+
+	def _load_sensor(self, packet_size, leakage, init_overhead, duration_range, history_size, sample_frequency, sensor_net_cfg):
+		self.eh = EnergyHarvester()
+		self.sensor = Device(
+			packet_size=packet_size,
+			leakage=leakage,
+			init_overhead=init_overhead,
+			eh=self.eh,
+			policy_mode=self.policy_mode,
+			classifier=self.classifier,
+			device=self.device, 
+			duration_range=duration_range,
+			history_size=history_size, 
+			sample_frequency=sample_frequency,
+			sensor_net_cfg=sensor_net_cfg,
+			seed=self.seed,
+		)	
+	
+	def load_policy(self):
+		self.sensor = self.sensor.load_state_dict(torch.load(self.sensor_path)['model_state_dict'])

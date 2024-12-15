@@ -1,83 +1,37 @@
-import os
+import random
 import torch
+import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
-from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from utils.setup_funcs import *
-from datasets.dsads_contig.dsads import *
-from datasets.energy_harvest import EnergyHarvester
-from train import *
-from datasets.apply_policy_nathan import Device
+from collections import deque, namedtuple
+from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import f1_score
 
-from experiments.dataloader import load_data
+from experiments.trainer import DeviceTrainer
 
-class Trainer():
-	def __init__(self, exp_name, policy_mode, sensor_cfg, train_cfg, device, load_path, lr, seed):
-		self.policy_mode = policy_mode
+Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state'))
 
-		self.load_path = load_path
-		self.seed = seed
-		self.device = device
+class ReplayMemory():
+    def __init__(self, capacity):
+        self.memory = deque([], maxlen=capacity) 
+    
+    def push(self, *args):
+        """Save a transition"""
+        self.memory.append(Transition(*args))
 
-		self.train_cfg = train_cfg
+    def sample(self, batch_size):
+        return random.sample(self.memory, batch_size)
 
-		self._setup_paths(load_path, exp_name)
-		self._load_data()
-		self._load_classifier()
-		self._load_sensor(**sensor_cfg)
-		self._build_optimizer(lr)
+    def __len__(self):
+        return len(self.memory)
 
+class RLDeviceTrainer(DeviceTrainer):
+	def __init__(self, exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, lr, seed):
+		super().__init__(exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, lr, seed)
 		self.memory = ReplayMemory(self.train_cfg['replay_buffer_capacity'])
 		self.criterion = nn.SmoothL1Loss() # the loss function
-
-		self.fig, self.axs = plt.subplots(1,1)
-
-	def _setup_paths(self, load_path, exp_name):
-		self.root_dir = os.path.dirname(os.path.dirname(__file__))
-		if load_path is None:
-			now = datetime.datetime.now()
-			start_time = now.strftime("%Y-%m-%d_%H-%M-%S")
-			self.log_dir = os.path.join(self.root_dir,"saved_data/runs",f"{exp_name}")+"_"+start_time
-		else:
-			self.log_dir = load_path
-		
-		# path where model parameters will be saved
-		self.sensor_path = os.path.join(self.log_dir, "model_params.pt")
-		self.data_dir = os.path.join(self.root_dir,"datasets/dsads_contig/merged_preprocess")
-
-		self.plot_dir = os.path.join(self.log_dir, "plots")
-		if not os.path.isdir(self.plot_dir): os.makedirs(self.plot_dir)
-	
-	def _load_data(self):
-		self.data = load_data(self.data_dir, self.device)
-	
-	def _build_optimizer(self, lr):
-		self.opt = torch.optim.Adam(self.sensor.parameters(),lr=lr)
-
-	def _load_classifier(self):
-		self.classifier = SimpleNet(3,10).to(self.device)
-		ckpt_path = os.path.join(self.root_dir,f"saved_data/checkpoints/seed{123}.pth")
-		self.classifier.load_state_dict(torch.load(ckpt_path)['model_state_dict'])
-
-	def _load_sensor(self, packet_size, leakage, init_overhead, duration_range, history_size, sample_frequency, sensor_net_cfg):
-		self.eh = EnergyHarvester()
-		self.sensor = Device(
-			packet_size=packet_size,
-			leakage=leakage,
-			init_overhead=init_overhead,
-			eh=self.eh,
-			policy_mode=self.policy_mode,
-			classifier=self.classifier,
-			device=self.device, 
-			duration_range=duration_range,
-			history_size=history_size, 
-			sample_frequency=sample_frequency,
-			sensor_net_cfg=sensor_net_cfg,
-			seed=self.seed,
-		)		
 
 	def optimize_model(self):
 		if len(self.memory) < self.train_cfg['batch_size']:
@@ -260,9 +214,19 @@ class Trainer():
 		writer.add_scalar("val_metric/opp_f1", val_opp_f1, iteration)
 		writer.add_scalar("val_metric/policy_reward", learned_reward, iteration)
 		writer.add_scalar("val_metric/opp_reward", opp_reward, iteration)
+
+		val_loss = {
+			'f1': val_policy_f1,
+			'avg_reward': learned_reward,
+		}
+
+		if learned_packets[0] is None:
+			# Policy did not sample at all
+			print(f"Iteration {iteration}: Policy did not sample at all during validation so no validation plot!")
+			return val_loss
 		
-		policy_sample_times = (learned_packets[0]).long()
-		opp_sample_times = (opp_packets[0]).long()
+		policy_sample_times = (learned_packets[0]).long() - self.sensor.packet_size
+		opp_sample_times = (opp_packets[0]).long() - self.sensor.packet_size
 		self.axs.axhline(y=self.sensor.thresh, linestyle='--', color='green') # Opportunistic policy will send at this energy
 		self.axs.plot(val_t_axis, learned_e_trace)
 		self.axs.plot(val_t_axis, opp_e_trace, linestyle='--')
@@ -275,16 +239,7 @@ class Trainer():
 		plt.savefig(f"{self.plot_dir}/plot_{iteration}.png")
 		self.axs.cla()
 
-		val_loss = {
-			'f1': val_policy_f1,
-			'avg_reward': learned_reward,
-		}
-
 		return val_loss
-
-
-	def load_policy(self):
-		self.sensor = self.sensor.load_state_dict(torch.load(self.sensor_path)['model_state_dict'])
 
 if __name__ == '__main__':
 	import argparse
@@ -326,7 +281,12 @@ if __name__ == '__main__':
 		'replay_buffer_capacity': 10_000,	
 	}
 
-	trainer = Trainer(exp_name, policy_mode, sensor_cfg, train_cfg, device, load_path, lr, seed)
+	classifier_cfg = {
+		'path': "saved_data/checkpoints/dsads_contig/seed123_activities_[ 0  1  2  3  9 11 15 17 18].pth",
+		'num_activities': 9,
+	}
+
+	trainer = RLDeviceTrainer(exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, lr, seed)
 	trainer.train()
 
 
