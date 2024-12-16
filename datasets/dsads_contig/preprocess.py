@@ -5,6 +5,7 @@ import re
 from scipy.signal import resample
 import argparse
 from pathlib import Path
+import random
 
 # ============ Argument parser ============
 parser = argparse.ArgumentParser(description='Preprocess DSADS Dataset')
@@ -31,7 +32,8 @@ NUM_USERS = 8
 # val_users = [6]
 # testing_users = [7,8]
 
-users = [1,2,3,4,5,6,7,8]
+# users = [1,2,3,4,5,6,7,8]
+users = [0]
 train_frac = 0.7
 val_frac = 0.1
 test_frac = 0.2
@@ -42,8 +44,26 @@ og_sampling_rate = 25
 window_len = 8
 overlap_frac = 0.5
 
-SEGMENT_LEN = 125 # samples per segment file, 5 seconds * 25 Hz 
-NUM_SEGMENTS = 60 # 5 minutes (300 seconds) / 5 second segments
+T = 5 # [min]
+SEG_T = 5 # [sec]
+SEGMENT_LEN = SEG_T * og_sampling_rate # samples per segment file, 5 seconds * 25 Hz 
+NUM_SEGMENTS = 60*T // SEG_T # 5 minutes (300 seconds) / 5 second segments
+
+######################################################## NEW SECTION
+SEGMENT_LEN_RANGE = (0.5,3.5) # [sec]
+NUM_SAMPLES = 60*T*og_sampling_rate
+
+def generate_segment_lens():
+    lens = [] 
+    while (sum(lens) < NUM_SAMPLES):
+        if (NUM_SAMPLES - sum(lens) <= int(SEGMENT_LEN_RANGE[1] * og_sampling_rate)):
+            lens.append(NUM_SAMPLES - sum(lens))
+        else:
+            lens.append(int(random.uniform(*SEGMENT_LEN_RANGE) * og_sampling_rate))   
+    return lens
+
+SEGMENT_LENS = generate_segment_lens()
+########################################################
 
 sensors = ['acc','gyro','mag']
 sensor_dims = 3 # XYZ
@@ -65,7 +85,8 @@ for bp in active_body_parts:
             active_channels.append(sensor_channel_map[bp][sensor])
 active_channels = np.array(active_channels).flatten()
 
-num_samples_per_activity = SEGMENT_LEN*NUM_SEGMENTS
+num_samples_per_activity = int(SEGMENT_LEN*NUM_SEGMENTS)
+print("Num samples per activity:", num_samples_per_activity)
 
 # ============ determine the labeling scheme ============
 label_map = {
@@ -137,6 +158,9 @@ if __name__ == '__main__':
 
     # merge data for each participant
     for user_i, user_folder in enumerate(participant_folders):
+        if user_i not in users:
+            continue
+
         for activity_i, activity_folder in enumerate(activity_folders):
             # print(f"user: {user_i}, activity: {label_map[activity_i]}")
             if activity_i in args.activity_list:
@@ -148,6 +172,7 @@ if __name__ == '__main__':
             # create the data array which contains samples across all segment files
             data_array = np.zeros((num_samples_per_activity,len(active_channels)))
             label_array = np.zeros(num_samples_per_activity)
+            # TODO: only use some segment files
             for segment_i, segment_file in enumerate(segment_files):
                 data_file_path = os.path.join(root_dir,activity_folder,user_folder,segment_file)
                 data_segment = pd.read_csv(data_file_path,header=None).values
@@ -166,15 +191,30 @@ if __name__ == '__main__':
             val_label_pool[active_activity_i][user_i*val_seg_len:user_i*val_seg_len+val_seg_len] = label_array[train_seg_len:train_seg_len+val_seg_len]
             testing_label_pool[active_activity_i][user_i*test_seg_len:user_i*test_seg_len+test_seg_len] = label_array[train_seg_len+val_seg_len:]
     
+    rng = np.random.default_rng(seed=0)
+
+    training_keys = list(training_data_pool.keys())
+    val_keys = list(val_data_pool.keys())
+    testing_keys = list(testing_data_pool.keys())
+    rng.shuffle(training_keys)
+    rng.shuffle(val_keys)
+    rng.shuffle(testing_keys)
+
+    
+
+    """ TODO:
+    1. get a random sequence of activities (of fixed duration T)
+    2. randomly sample a T segment from the data for that activity
+    """
+    
     # merge training, validation, and test data each into arrays
-    training_data = np.concatenate([training_data_pool[i] for i in training_data_pool.keys()])
-    val_data = np.concatenate([val_data_pool[i] for i in val_data_pool.keys()])
-    testing_data = np.concatenate([testing_data_pool[i] for i in testing_data_pool.keys()])
+    training_data = np.concatenate([training_data_pool[i] for i in training_keys])
+    val_data = np.concatenate([val_data_pool[i] for i in val_keys])
+    testing_data = np.concatenate([testing_data_pool[i] for i in testing_keys])
 
-    training_labels = np.concatenate([training_label_pool[i] for i in training_label_pool.keys()])
-    val_labels = np.concatenate([val_label_pool[i] for i in val_label_pool.keys()])
-    testing_labels = np.concatenate([testing_label_pool[i] for i in testing_label_pool.keys()])
-
+    training_labels = np.concatenate([training_label_pool[i] for i in training_keys])
+    val_labels = np.concatenate([val_label_pool[i] for i in val_keys])
+    testing_labels = np.concatenate([testing_label_pool[i] for i in testing_keys])
 
     # windowing on training/validation data to train classifier    
     slide = int(window_len*(1-overlap_frac))
@@ -192,7 +232,6 @@ if __name__ == '__main__':
     # print("val_window_idxs:",val_window_idxs)
     # print("val_window_labels:",val_window_labels)
     # print("val_labels:",val_labels)
-
 
     print(f'Train shape: {training_data.shape},{training_labels.shape}')
     print(f'Val shape: {val_data.shape},{val_labels.shape}')

@@ -15,7 +15,7 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
         super().__init__(exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, lr, seed)
     
     def _build_optimizer(self, lr):
-        init_params = [0.0, 0.0]
+        init_params = [2e-4, 100]
         # Initialize optimizer
         f = partial(self.sensor.forward_zeroth, training=True)
         self.optimizer = ZerothOrderOptimizer(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=[[0.0, 2e-4], [0.0, 100.0]])
@@ -48,10 +48,8 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
 
     def train(self):
         writer = SummaryWriter(self.log_dir)
-        last_best_params = torch.zeros(2)
-        best_params = torch.zeros(2)
         best_val_reward = 0.0
-        near_convergence = 0
+        best_params = self.optimizer.params
 
         for iteration in tqdm(range(self.train_cfg['epochs'])):
             self.train_one_epoch(iteration, writer)
@@ -59,17 +57,11 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
                 val_loss = self.validate(iteration, writer, *self.data['val'], self.train_cfg['val_iters'])
                 if val_loss['avg_reward'] >= best_val_reward:
                     best_val_reward = val_loss['avg_reward']
-                    if torch.allclose(self.optimizer.params, last_best_params) or torch.allclose(self.optimizer.params, best_params):
-                        self.optimizer.epsilon /= 2
-                        near_convergence += 1
-                        print(f"Decreasing epsilon to {self.optimizer.epsilon}")
-                    else:
-                        last_best_params = best_params
-                        best_params = self.optimizer.params
             
-            if near_convergence == 2:
+            if self.optimizer.near_convergence == 2:
+                best_params = self.optimizer.params
                 print(f"Stopping training as reached convergence with epsilon {self.optimizer.epsilon}")
-                print(f"Parameters are {self.optimizer.params}")
+                print(f"Parameters are {best_params}")
                 break
         
         test_loss = self.test(*self.data['test'])
@@ -235,11 +227,14 @@ class ZerothOrderOptimizer():
         self.epsilon = torch.tensor(epsilon)
         self.batch_size = batch_size
         self.f = f # optimizing wrt first input of f
+
+        self.near_convergence = 0
     
     def _check_params_in_bounds(self, param):
         if self.params_bounds is not None:
             for i,p in enumerate(param):
                 if not self.params_bounds[i,0] <= p <= self.params_bounds[i,1]:
+                    # print(f"{param} is out of bounds!")
                     return False
             return True
         else:
@@ -250,17 +245,18 @@ class ZerothOrderOptimizer():
         # evaluate f(x+\delta_x) for delta_x sampled uniformly. 
         num_params = len(self.params)
         delta_permutations = torch.tensor(list(product([-1,0,1], repeat=num_params)), dtype=torch.float32)
-        delta_permutations = F.normalize(delta_permutations, eps=1.0)
+        # delta_permutations = F.normalize(delta_permutations, eps=1.0)
         evaluations = torch.zeros(delta_permutations.shape[0])
         for _ in range(self.batch_size):
             for k, delta in enumerate(delta_permutations):
                 if self._check_params_in_bounds(self.params + self.epsilon * delta):
                     param = self.params + self.epsilon * delta
+                    evaluations[k] += self.f(param, **f_args) / self.batch_size      
                 else:
-                    param = self.params
-                evaluations[k] += self.f(param, **f_args) / self.batch_size      
+                    evaluations[k] += -1 # add a negative number since out of bounds
         
         max_value = torch.max(evaluations)
+        # Get index of max value. If there are multiple then choose randomly.
         max_index = (evaluations == max_value).nonzero()
         max_index = max_index[torch.randint(low=0, high=len(max_index), size=())].item()
         descent_direction = delta_permutations[max_index]
@@ -271,15 +267,21 @@ class ZerothOrderOptimizer():
         return descent_direction, max_value
 
     def point_update(self, descent_direction):
-        if (self.params + self.epsilon * descent_direction < 0).any():
-            return self.params
-        else:
+        if self._check_params_in_bounds(self.params + self.epsilon * descent_direction):
             return self.params + self.epsilon * descent_direction
+        else:
+            return self.params
 
     def forward(self, f_args):
+        params_before = self.params
         descent_direction, max_value = self.estimate_gradient_and_descent_direction(f_args)
         self.params = self.point_update(descent_direction)
 
+        if torch.equal(params_before, self.params):
+            self.optimizer.epsilon /= 2
+            self.near_convergence += 1
+            print(f"Decreasing epsilon to {self.optimizer.epsilon}")
+            
         return max_value
     
 
