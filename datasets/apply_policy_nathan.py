@@ -12,12 +12,14 @@ class DeviceState(Enum):
 	ON_CAN_TX = 1 # already on and have at least thresh energy
 	ON_CANT_TX = 2 # already on but have less than thresh energy
 	ON_CANT_TX_DELAY = 3 # have enough energy to send but delaying some time
+	ON = 4
 
 class Device(nn.Module):
 	def __init__(self, 
 				 packet_size, leakage, init_overhead, eh, policy_mode, duration_range,
 				 history_size, sample_frequency,
 				 sensor_net_cfg, classifier,
+				 mean, std,
 				 device, seed):
 		super().__init__()
 		self.packet_size = packet_size
@@ -31,10 +33,13 @@ class Device(nn.Module):
 		self.HISTORY_SIZE = history_size
 		self.FS = sample_frequency
 
+		self.mean = mean
+		self.std = std
+
 		self.classifier = classifier
 		self._build_nets(sensor_net_cfg)
 		
-		self.g = torch.Generator()
+		self.g = torch.Generator(device=self.device)
 		self.g.manual_seed(seed)
 	
 	def _build_nets(self, sensor_net_cfg):
@@ -49,7 +54,7 @@ class Device(nn.Module):
 		df = pd.DataFrame(data_window[:,channels],columns=['time', 'x', 'y','z'])
 		return df
 	
-	def preprocess_constants(self, params, df):
+	def preprocess_constants(self, df):
 		self.dt = df['time'][1] - df['time'][0]
 		self.LEAKAGE_PER_SAMPLE = self.leakage*self.dt
 		# get energy as function of samples
@@ -86,9 +91,13 @@ class Device(nn.Module):
 		alpha = params[0]
 		tau = int(params[1])
 
+		if policy_mode == "opportunistic":
+			alpha = 0
+			tau = 0
+
 		# Preprocess data to a Pandas dataframe		
 		df = self.preprocess_data(data)
-		self.preprocess_constants(params, df)
+		self.preprocess_constants(df)
 
 		# create a mask of seen and unseen data
 		valid = np.empty(self.T)
@@ -110,6 +119,7 @@ class Device(nn.Module):
 
 		# energy starts from 0 at time step 0 so simulate from timestep 1
 		k=1
+		last_sent_idx=0
 		
 		# iterate over energy values
 		while k < len(e_trace):
@@ -131,7 +141,7 @@ class Device(nn.Module):
 				if STATE == DeviceState.OFF: # turn on when have init overhead
 					# OFF -> ON_CANT_TX
 					if e_trace[k] >= 5*self.LEAKAGE_PER_SAMPLE + self.init_overhead:
-						STATE = DeviceState.ON_CANT_TX
+						STATE = DeviceState.ON
 						try:
 							e_trace[k+1] = e_trace[k] - self.init_overhead # apply overhead instantly
 						except:
@@ -141,57 +151,27 @@ class Device(nn.Module):
 					# OFF -> OFF
 					else:
 						k += 1
-				# ON_CANT_TX -> ON_CAN_TX, ON_CANT_TX -> OFF, ON_CANT_TX -> ON_CANT_TX
-				elif STATE == DeviceState.ON_CANT_TX:
-					# ON_CANT_TX -> ON_CAN_TX
-					if e_trace[k] >= self.thresh + alpha + 5*self.LEAKAGE_PER_SAMPLE:
-						STATE = DeviceState.ON_CAN_TX
+				elif STATE == DeviceState.ON:
+					# ON -> OFF
+					if e_trace[k] == 0:
+						STATE = DeviceState.OFF
+						k += 1
+					# Send if energy is above threshold
+					elif e_trace[k] >= self.thresh + alpha + 5*self.LEAKAGE_PER_SAMPLE and (k - last_sent_idx >= tau):
 						# we are within one packet of the end of the data
 						if k + self.packet_size + 1 >= len(e_trace):
 							k += (self.packet_size+1)
 							break
 						# once thresh is reached, we start sampling on the next sample
+						last_sent_idx = k
 						actions[k] = True
 						valid[k+1:k+1+self.packet_size] = 1
-						# Set policy_outputs[k] = 1.0 since policy sent packet
-						updated_policy_outputs = policy_outputs.clone()
-						updated_policy_outputs[k] = 1.0
-						policy_outputs = updated_policy_outputs
-						# we apply linear energy usage for each sample and get harvested amount each step
-						e_trace[k+1:k+1+self.packet_size] = (-self.linear_usage[:] + e_harvest[k+1:k+1+self.packet_size]) + e_trace[k]
-						k += (self.packet_size+1)
-					# ON_CANT_TX -> OFF
-					elif e_trace[k] == 0:
-						STATE = DeviceState.OFF
-						k += 1
-					# ON_CANT_TX -> ON_CANT_TX
-					else:
-						STATE = DeviceState.ON_CANT_TX
-						k += 1
-				# ON_CAN_TX -> OFF, ON_CAN_TX -> ON_CANT_TX
-				elif STATE == DeviceState.ON_CAN_TX:
-					if e_trace[k] == 0: # device died
-						STATE = DeviceState.OFF
-						k += 1
-					elif e_trace[k] < self.thresh:
-						STATE = DeviceState.ON_CANT_TX
-						k += 1
-					elif e_trace[k - tau] >= e_trace[k]:
-						# we are within one packet of the end of the data
-						if k + self.packet_size + 1 >= len(e_trace):
-							k += (self.packet_size+1)
-							break
-						# once thresh is reached, we start sampling on the next sample
-						actions[k] = True
-						valid[k+1:k+1+self.packet_size] = 1
-						# Set policy_outputs[k] = 1.0 since policy sent packet
-						updated_policy_outputs = policy_outputs.clone()
-						updated_policy_outputs[k] = 1.0
-						policy_outputs = updated_policy_outputs
 						# we apply linear energy usage for each sample and get harvested amount each step
 						e_trace[k+1:k+1+self.packet_size] = (-self.linear_usage[:] + e_harvest[k+1:k+1+self.packet_size]) + e_trace[k]
 						k += (self.packet_size+1)					
-
+					else:
+						k += 1
+			
 			'''Learned Policy'''
 			if policy_mode == 'learned_policy':
 				if STATE == DeviceState.OFF: # turn on when have init overhead
@@ -358,7 +338,9 @@ class Device(nn.Module):
 		for t, data in zip(*packets):
 			data = data.T.unsqueeze(0)
 			# make prediction
-			out = self.classifier(data) # removed torch.no_grad()
+			with torch.no_grad():
+				data = (data-self.mean.unsqueeze(0).unsqueeze(2))/(self.std.unsqueeze(0).unsqueeze(2) + 1e-5)
+				out = self.classifier(data) # removed torch.no_grad()
 			outputs.append( torch.softmax(out, dim=1))
 			preds.append(torch.argmax(torch.softmax(out, dim=1)).unsqueeze(0))
 			# save target
@@ -459,27 +441,9 @@ class Device(nn.Module):
 			# print("Classifier preds shape", classifier_preds.shape)
 
 			rewards = torch.where(classifier_preds == classifier_targets, 1, 0)
-			full_states = torch.stack((e_trace, actions), dim=1)
-
-			states = torch.tensor([], dtype=torch.float32, device=self.device)
-			for i in range(full_states.shape[0] - self.HISTORY_SIZE):
-				current_state = full_states[i : i+self.HISTORY_SIZE].unsqueeze(0)
-				states = torch.cat((states, current_state))
-			states = torch.cat((states, 9999*torch.ones((1,self.HISTORY_SIZE,2)))) 
-
-			state = states[:-1]
-			actions = actions[self.HISTORY_SIZE:]
 			# pad rewards with zero (it is shorter because classifier has not sent)
-			rewards = torch.cat((torch.zeros(state.shape[0]-rewards.shape[0]), rewards))
-			next_state = states[1:]
-			truncated = False
-
+			# rewards = torch.cat((torch.zeros(actions.shape[0]-rewards.shape[0]), rewards))
 			rewards = torch.sum(rewards) / len(rewards)
-
-
-			# print("state shape", state.shape)
-			# print("actions shape", actions.shape)
-			# print("next state shape", next_state.shape)
-			# print("rewards shape", rewards.shape)
+			# print(rewards)
 
 			return rewards

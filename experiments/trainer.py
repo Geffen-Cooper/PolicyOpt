@@ -25,7 +25,7 @@ class DeviceTrainer():
 		self._load_sensor(**sensor_cfg)
 		self._build_optimizer(lr)
 
-		self.fig, self.axs = plt.subplots(1,1)
+		self.fig, self.axs = plt.subplots(1,1, figsize=(20,5))
 
 	def _setup_paths(self, load_path, exp_name):
 		self.root_dir = os.path.dirname(os.path.dirname(__file__))
@@ -47,6 +47,10 @@ class DeviceTrainer():
 	
 	def _load_data(self):
 		self.data = load_data(self.data_dir, self.device)
+		train_data = torch.tensor(self.data['train'][0])
+		# Compute mean and std used to normalize sensor data fed to classifier
+		self.mean = torch.mean(train_data, dim=0)
+		self.std = torch.std(train_data, dim=0)
 	
 	def _build_optimizer(self, lr):
 		self.opt = torch.optim.Adam(self.sensor.parameters(),lr=lr)
@@ -69,6 +73,8 @@ class DeviceTrainer():
 			duration_range=duration_range,
 			history_size=history_size, 
 			sample_frequency=sample_frequency,
+			mean=self.mean,
+			std=self.std,
 			sensor_net_cfg=sensor_net_cfg,
 			seed=self.seed,
 		)	

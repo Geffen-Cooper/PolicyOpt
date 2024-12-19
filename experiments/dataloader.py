@@ -16,8 +16,8 @@ def load_data(dir, device):
 
     test_data = np.load(f"{dir}/testing_data.npy")
     test_labels = np.load(f"{dir}/testing_labels.npy")
-    test_data = torch.tensor(test_data[:500], dtype=torch.float32, device=device)
-    test_labels = torch.tensor(test_labels[:500], dtype=torch.long, device=device)
+    test_data = torch.tensor(test_data, dtype=torch.float32, device=device)
+    test_labels = torch.tensor(test_labels, dtype=torch.long, device=device)
 
     data = {
         'train': (train_data, train_labels),

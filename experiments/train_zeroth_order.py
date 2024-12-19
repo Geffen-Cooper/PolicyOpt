@@ -15,10 +15,12 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
         super().__init__(exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, lr, seed)
     
     def _build_optimizer(self, lr):
-        init_params = [2e-4, 100]
+        # init_params = [1.5e-4, 1e1] # MAX_E - thresh, 
+        # init_params = [2e-5, 2e1]
+        init_params = [0.0, 9e1]
         # Initialize optimizer
         f = partial(self.sensor.forward_zeroth, training=True)
-        self.optimizer = ZerothOrderOptimizer(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=[[0.0, 2e-4], [0.0, 100.0]])
+        self.optimizer = ZerothOrderOptimizer(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=[[0.0, 1.5e-4], [0.0, 100.0]])
 
     def optimize_model(self, *f_args):
         return self.optimizer.forward(*f_args)
@@ -51,20 +53,22 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
         best_val_reward = 0.0
         best_params = self.optimizer.params
 
+        test_loss = self.test(best_params, *self.data['test'])
+
         for iteration in tqdm(range(self.train_cfg['epochs'])):
             self.train_one_epoch(iteration, writer)
-            if iteration != 0 and iteration % self.train_cfg['val_every_epochs'] == 0:
+            if iteration % self.train_cfg['val_every_epochs'] == 0:
                 val_loss = self.validate(iteration, writer, *self.data['val'], self.train_cfg['val_iters'])
                 if val_loss['avg_reward'] >= best_val_reward:
+                    best_params = self.optimizer.params
                     best_val_reward = val_loss['avg_reward']
             
             if self.optimizer.near_convergence == 2:
-                best_params = self.optimizer.params
                 print(f"Stopping training as reached convergence with epsilon {self.optimizer.epsilon}")
                 print(f"Parameters are {best_params}")
                 break
         
-        test_loss = self.test(*self.data['test'])
+        test_loss = self.test(best_params, *self.data['test'])
             
     def validate(self, iteration, writer, data, labels, val_iterations):
         self.sensor.eval()
@@ -109,7 +113,7 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
         val_policy_f1 /= val_iterations
         val_opp_f1 /= val_iterations
 
-        print("Iteration: {}, val_policy_f1_score: {:.3f}, val_opp_f1_score {:.3f}".format(iteration, val_policy_f1, val_opp_f1))
+        print("Iteration: {}, params: {}, val_policy_f1_score: {:.3f}, val_opp_f1_score {:.3f}".format(iteration, self.optimizer.params, val_policy_f1, val_opp_f1))
 
         if writer is not None:
             writer.add_scalar("val_metric/f1_difference", val_policy_f1 - val_opp_f1, iteration)
@@ -126,17 +130,17 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
 
         if learned_packets[0] is None:
             # Policy did not sample at all
-            # print(f"Iteration {iteration}: Policy did not sample at all during validation so no validation plot!")
+            print(f"Iteration {iteration}: Policy did not sample at all during validation so no validation plot!")
             return val_loss
         
-        policy_sample_times = (learned_packets[0]).long() - self.sensor.packet_size
-        opp_sample_times = (opp_packets[0]).long() - self.sensor.packet_size
+        policy_sample_times = (learned_packets[0]).long()
+        opp_sample_times = (opp_packets[0]).long()
         self.fig.suptitle(r"$\alpha = {:.3e}, \tau = {:.3e}$".format(self.optimizer.params[0], self.optimizer.params[1]))
-        self.axs.axhline(y=self.sensor.thresh, linestyle='--', color='green') # Opportunistic policy will send at this energy
         self.axs.plot(t_axis, learned_e_trace)
         self.axs.plot(t_axis, opp_e_trace, linestyle='--')
-        self.axs.scatter(t_axis[policy_sample_times], learned_e_trace[policy_sample_times], label='policy')
-        self.axs.scatter(t_axis[opp_sample_times], opp_e_trace[opp_sample_times], marker='D', label='opp')
+        self.axs.scatter(t_axis[policy_sample_times], learned_e_trace[policy_sample_times], s=100, label='policy')
+        self.axs.scatter(t_axis[opp_sample_times], opp_e_trace[opp_sample_times], marker='D', s=100, alpha=0.3, label='opp')
+        self.axs.axhline(y=self.sensor.thresh, linestyle='--', color='green') # Opportunistic policy will send at this energy
         self.axs.set_xlabel("Time")
         self.axs.set_ylabel("Energy")
         self.axs.legend()
@@ -146,71 +150,69 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
 
         return val_loss
 
-    def test(self, data, labels):
+    def test(self, params, data, labels):
         self.sensor.eval()
         learned_reward = 0.0
         opp_reward = 0.0
         test_policy_f1 = 0.0
         test_opp_f1 = 0.0
 
-        for (d,l) in zip(data, labels):
-            with torch.no_grad():
-                t_axis = torch.arange(len(l), dtype=torch.float64, device=self.device)/self.sensor.FS
-                t_axis = t_axis.reshape(-1,1)
-                test_full_data_window = torch.cat((t_axis, d), dim=1)
+        with torch.no_grad():
+            t_axis = torch.arange(len(labels), dtype=torch.float64, device=self.device)/self.sensor.FS
+            t_axis = t_axis.reshape(-1,1)
+            test_full_data_window = torch.cat((t_axis, data), dim=1)
 
-                learned_packets, learned_e_trace, actions = self.sensor.forward_sensor(self.optimizer.params, test_full_data_window)
-                
-                if learned_packets[0] is None:
-                    # Policy did not sample at all
-                    # print(f"Iteration {iteration}: Policy did not sample at all during validation!")
-                    continue
+            learned_packets, learned_e_trace, actions = self.sensor.forward_sensor(params, test_full_data_window)
 
-                opp_packets, opp_e_trace, opp_actions = self.sensor.forward_sensor(torch.zeros(2), test_full_data_window, policy_mode="opportunistic") # opportunistic params are [0.0, 0.0]
-                
+            if learned_packets[0] is None:
+                print("Learned policy did not send during test time")
+                return
 
-                outputs_learned, preds_learned, targets_learned = self.sensor.forward_classifier(l,learned_packets)
+            opp_packets, opp_e_trace, opp_actions = self.sensor.forward_sensor(torch.zeros(2), test_full_data_window, policy_mode="opportunistic") # opportunistic params are [0.0, 0.0] 
 
-                outputs_opp, preds_opp, targets_opp = self.sensor.forward_classifier(l,opp_packets)
+            outputs_learned, preds_learned, targets_learned = self.sensor.forward_classifier(labels,learned_packets)
 
-                learned_reward += torch.where(preds_learned == targets_learned, 1, 0).sum() / len(preds_learned)
-                opp_reward += torch.where(preds_opp == targets_opp, 1, 0).sum() / len(preds_opp)
+            outputs_opp, preds_opp, targets_opp = self.sensor.forward_classifier(labels,opp_packets)
 
-                test_policy_f1 += f1_score(
-                    targets_learned.detach().cpu().numpy(), preds_learned.detach().cpu().numpy(), average='macro'
-                )
-                test_opp_f1 += f1_score(
-                    targets_opp.detach().cpu().numpy(), preds_opp.detach().cpu().numpy(), average='macro'
-                )
+            learned_reward += torch.where(preds_learned == targets_learned, 1, 0).sum() / len(preds_learned)
+            opp_reward += torch.where(preds_opp == targets_opp, 1, 0).sum() / len(preds_opp)
+
+            test_policy_f1 += f1_score(
+                targets_learned.detach().cpu().numpy(), preds_learned.detach().cpu().numpy(), average='macro'
+            )
+            test_opp_f1 += f1_score(
+                targets_opp.detach().cpu().numpy(), preds_opp.detach().cpu().numpy(), average='macro'
+            )
         
         num_test_trajs = data.shape[0]
         
-        learned_reward /= num_test_trajs
-        opp_reward /= num_test_trajs
-        test_policy_f1 /= num_test_trajs
-        test_opp_f1 /= num_test_trajs
+        # learned_reward /= num_test_trajs
+        # opp_reward /= num_test_trajs
+        # test_policy_f1 /= num_test_trajs
+        # test_opp_f1 /= num_test_trajs
 
-        print("Test: policy F1: {:.3f}, opportunistic F1 {:.3f}".format(test_policy_f1, test_opp_f1))
+        print("Test: policy F1: {:.3f}, opportunistic F1 {:.3f}, policy avg reward: {:.3f}, opportunistic avg reward: {:.3f}".format(test_policy_f1, test_opp_f1, learned_reward, opp_reward))
 
         test_loss = {
             'f1': test_policy_f1,
             'avg_reward': learned_reward,
+            'avg_opp_reward': opp_reward,
             'avg_reward_diff': learned_reward - opp_reward,
         }
 
         if learned_packets[0] is None:
             # Policy did not sample at all
-            # print(f"Iteration {iteration}: Policy did not sample at all during validation so no validation plot!")
+            print(f"Policy did not sample at all during testing so no testing plot!")
             return test_loss
         
-        policy_sample_times = (learned_packets[0]).long() - self.sensor.packet_size
-        opp_sample_times = (opp_packets[0]).long() - self.sensor.packet_size
-        self.fig.suptitle(r"$\alpha = {:.3e}, \tau = {:.3e}$".format(self.optimizer.params[0], self.optimizer.params[1]))
+        policy_sample_times = (learned_packets[0]).long()
+        opp_sample_times = (opp_packets[0]).long()
+        self.fig.suptitle(r"$\alpha = {:.3e}, \tau = {:.3e}$".format(params[0], params[1]))
         self.axs.axhline(y=self.sensor.thresh, linestyle='--', color='green') # Opportunistic policy will send at this energy
         self.axs.plot(t_axis, learned_e_trace)
         self.axs.plot(t_axis, opp_e_trace, linestyle='--')
-        self.axs.scatter(t_axis[policy_sample_times], learned_e_trace[policy_sample_times], label='policy')
-        self.axs.scatter(t_axis[opp_sample_times], opp_e_trace[opp_sample_times], marker='D', label='opp')
+        self.axs.scatter(t_axis[policy_sample_times], learned_e_trace[policy_sample_times], s=100, label='policy')
+        self.axs.scatter(t_axis[opp_sample_times], opp_e_trace[opp_sample_times], marker='D', s=100, alpha=0.3,label='opp')
         self.axs.set_xlabel("Time")
         self.axs.set_ylabel("Energy")
         self.axs.legend()
@@ -278,13 +280,12 @@ class ZerothOrderOptimizer():
         self.params = self.point_update(descent_direction)
 
         if torch.equal(params_before, self.params):
-            self.optimizer.epsilon /= 2
+            self.epsilon /= 2
             self.near_convergence += 1
-            print(f"Decreasing epsilon to {self.optimizer.epsilon}")
+            print(f"Decreasing epsilon to {self.epsilon}")
             
         return max_value
     
-
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
@@ -297,15 +298,16 @@ if __name__ == '__main__':
     seed = 0
     policy_model = "MLP"
     device = "cpu"
-    lr = [1e-5, 1e1]
-    policy_mode = "learned_policy"
+    # lr = [0.5e-4, 1e1]
+    lr = [0.5e-4, 1e1]
+    policy_mode = "conservative"
 
     # sensor_cfg = (packet_size, leakage, init_overhead, duration_range, history_size, sample_frequency)
     sensor_cfg = {
         'packet_size': 8,
         'leakage': 6e-6,
         'init_overhead': 150e-6,
-        'duration_range': (1000,5000),
+        'duration_range': (1000,2000),
         'history_size': 16,
         'sample_frequency': 25,
     }
@@ -320,8 +322,8 @@ if __name__ == '__main__':
     train_cfg = {
         'batch_size': 1,
         'epochs': 5_000,
-        'val_iters': 100,
-        'val_every_epochs': 10,	
+        'val_iters': 1,
+        'val_every_epochs': 1,	
     }
 
     classifier_cfg = {
