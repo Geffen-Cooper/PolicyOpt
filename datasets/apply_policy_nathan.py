@@ -9,10 +9,7 @@ from experiments.models import DiscreteQNetwork
 
 class DeviceState(Enum):
 	OFF = 0 # init or device energy went to 0
-	ON_CAN_TX = 1 # already on and have at least thresh energy
-	ON_CANT_TX = 2 # already on but have less than thresh energy
-	ON_CANT_TX_DELAY = 3 # have enough energy to send but delaying some time
-	ON = 4
+	ON = 1 # otherwise
 
 class Device(nn.Module):
 	def __init__(self, 
@@ -33,8 +30,8 @@ class Device(nn.Module):
 		self.HISTORY_SIZE = history_size
 		self.FS = sample_frequency
 
-		self.mean = mean
-		self.std = std
+		self.mean = mean.to(device=self.device)
+		self.std = std.to(device=self.device)
 
 		self.classifier = classifier
 		self._build_nets(sensor_net_cfg)
@@ -43,15 +40,15 @@ class Device(nn.Module):
 		self.g.manual_seed(seed)
 	
 	def _build_nets(self, sensor_net_cfg):
-		if self.policy_mode == "conservative":
-			""" Learned threshold energy """
-		elif self.policy_mode == "learned_policy":
-			self.Q_network = DiscreteQNetwork(2, **sensor_net_cfg)
+		if self.policy_mode == "rl":
+			self.Q_network = DiscreteQNetwork(2, **sensor_net_cfg).to(device=self.device)
+		else:
+			raise NotImplementedError()
 	
 	def preprocess_data(self, data_window):
 		# create pandas data frame as specified by EnergyHarvester.power() function
 		channels = np.array([0,1,2,3]) # time + 3 acc channels of body part
-		df = pd.DataFrame(data_window[:,channels],columns=['time', 'x', 'y','z'])
+		df = pd.DataFrame(data_window.cpu()[:,channels],columns=['time', 'x', 'y','z'])
 		return df
 	
 	def preprocess_constants(self, df):
@@ -68,7 +65,7 @@ class Device(nn.Module):
 
 		# assume a linear energy usage over the course of a packet
 		# i.e., the quantity thresh/packet_size id used per sample. 
-		self.linear_usage = torch.linspace(0,self.thresh,self.packet_size+1)[1:]
+		self.linear_usage = torch.linspace(0,self.thresh,self.packet_size+1, device=self.device)[1:]
 	
 	def _sample_segment(self, data, labels):
 		duration = torch.randint(low=self.DURATION_RANGE[0], high=self.DURATION_RANGE[1], size=(), generator=self.g, device=self.device)*self.FS
@@ -82,8 +79,21 @@ class Device(nn.Module):
 		label_seg = labels[rand_start:rand_start+duration]
 
 		return data_seg, label_seg
+	
+	def _choose_action(self, policy_mode, inputs):
+		if policy_mode == "rl":
+			eps_threshold = 0.95 # TODO: decreasing epsilon
+			action_values = inputs
+			sample = torch.randn((), device=self.device, generator=self.g)
+			if sample > eps_threshold:
+				return torch.argmax(action_values)
+			else:
+				# return torch.randint(low=0, high=2, size=(), device=self.device, generator=self.g)
+				return torch.tensor(1, dtype=torch.long, device=self.device)
+		else:
+			raise NotImplementedError()
 
-	def forward_sensor(self, params, data, policy_mode=None):
+	def forward_sensor(self, data, params=[0.0, 0.0], policy_mode=None):
 		if policy_mode is None:
 			policy_mode = self.policy_mode
 
@@ -105,16 +115,15 @@ class Device(nn.Module):
 
 		# energy harvested each time step
 		e_harvest = np.concatenate([np.array([0]),np.diff(self.e_out)])
+		e_harvest = torch.tensor(e_harvest, device=self.device)
 
 		# energy state at each time step
 		e_trace = torch.zeros(self.T, dtype=torch.float32, device=self.device)
-		e_input = torch.zeros(self.HISTORY_SIZE)-1
 
 		# device state
 		STATE = DeviceState.OFF
 
 		# keep track of model outputs so can apply loss and backprop
-		policy_outputs = torch.zeros(self.T, dtype=torch.float32, device=self.device)
 		actions = torch.zeros(self.T, dtype=torch.bool, device=self.device)
 
 		# energy starts from 0 at time step 0 so simulate from timestep 1
@@ -125,8 +134,7 @@ class Device(nn.Module):
 		while k < len(e_trace):
 			# update energy state
 			e_trace[k] = e_trace[k-1] + e_harvest[k] - self.LEAKAGE_PER_SAMPLE
-			# print(k, e_trace[k],STATE,thresh,e_harvest[k],LEAKAGE_PER_SAMPLE)
-
+			# print(k, e_trace[k])
 			# saturate if exceed max or becomes negative
 			if e_trace[k] > self.MAX_E:
 				e_trace[k] = self.MAX_E
@@ -173,11 +181,11 @@ class Device(nn.Module):
 						k += 1
 			
 			'''Learned Policy'''
-			if policy_mode == 'learned_policy':
+			if policy_mode == 'rl':
 				if STATE == DeviceState.OFF: # turn on when have init overhead
 					# OFF -> ON_CAN_TX or OFF -> ON_CANT_TX
 					if e_trace[k] >= 5*self.LEAKAGE_PER_SAMPLE + self.init_overhead:
-						STATE = DeviceState.ON_CAN_TX
+						STATE = DeviceState.ON
 						try:
 							e_trace[k+1] = e_trace[k] - self.init_overhead # apply overhead instantly
 							e_trace[k+2] = e_trace[k+1] - self.LEAKAGE_PER_SAMPLE
@@ -190,10 +198,14 @@ class Device(nn.Module):
 						k += 1
 			
 				# ON_CANT_TX -> ON_CAN_TX, ON_CAN_TX -> ON_CANT_TX
-				elif STATE == DeviceState.ON_CAN_TX:
+				elif STATE == DeviceState.ON:
 					'''modification from opportunistic, check policy if to send, otherwise delay by a packet'''
-					# ON_CANT_TX -> ON_CAN_TX
-					if (e_trace[k] >= self.thresh + 5*self.LEAKAGE_PER_SAMPLE) and k > self.HISTORY_SIZE-1:
+					# ON -> OFF
+					if e_trace[k] == 0:
+						STATE = DeviceState.OFF
+						k += 1
+					# When the sensor has enough energy to send
+					elif (e_trace[k] >= self.thresh + 5*self.LEAKAGE_PER_SAMPLE) and k > self.HISTORY_SIZE-1:
 						if (torch.count_nonzero(actions) == 0):
 							# First sample a packet opportunistically
 							# we are within one packet of the end of the data
@@ -209,55 +221,45 @@ class Device(nn.Module):
 
 							# we apply linear energy usage for each sample and get harvested amount each step
 							e_trace[k+1:k+1+self.packet_size] = (-self.linear_usage[:] + e_harvest[k+1:k+1+self.packet_size]) + e_trace[k]
-
-							updated_policy_outputs = policy_outputs.clone()
-							updated_policy_outputs[k] = 1.0
-							policy_outputs = updated_policy_outputs
 							
 							k += (self.packet_size+1)
 
-							continue
-						
-						# else run the policy
-						e_input = e_trace[k-self.HISTORY_SIZE+1:k+1]
-						# e_input = (e_input-np.mean(e_input))/(np.std(e_input)+1e-5) # TODO: can normalize later
-
-						# policy inputs are buffers of the last HISTORY_SIZE energy traces and policy outputs 
-						policy_inputs = torch.cat([
-							e_input, 
-							policy_outputs[k-self.HISTORY_SIZE:k]
-						])
-
-						action_values = self.Q_network(policy_inputs)
-						if torch.argmax(action_values) == 0:
-							# The policy chose not to sample
-							k += 1
-							continue
 						else:
-							# The policy chose to sample
-							if k + self.packet_size + 1 >= len(e_trace):
-								# since we are within one packet of the end of the data, we do not sample
-								k += (self.packet_size+1)
-								break
+							# else run the policy
+							e_input = e_trace[k-self.HISTORY_SIZE+1:k+1]
+							# e_input = (e_input-np.mean(e_input))/(np.std(e_input)+1e-5) # TODO: can normalize later
+
+							# policy inputs are buffers of the last HISTORY_SIZE energy traces and policy outputs 
+							policy_inputs = torch.cat([
+								e_input, 
+								actions[k-self.HISTORY_SIZE:k]
+							]).to(device=self.device)
+
+							action_values = self.Q_network(policy_inputs)
+							action = self._choose_action(policy_mode, action_values)
+							if action == 0:
+								# The policy chose not to sample
+								k += 1
 							else:
-								actions[k] = True
-								valid[k+1:k+1+self.packet_size] = 1
+								# The policy chose to sample
+								if k + self.packet_size + 1 >= len(e_trace):
+									# since we are within one packet of the end of the data, we do not sample
+									k += (self.packet_size+1)
+									break
+								else:
+									actions[k] = True
+									valid[k+1:k+1+self.packet_size] = 1
 
-								# we apply linear energy usage for each sample and get harvested amount each step
-								e_trace[k+1:k+1+self.packet_size] = (-self.linear_usage[:] + e_harvest[k+1:k+1+self.packet_size]) + e_trace[k]
-								
-								k += (self.packet_size+1)
-
-					# ON_CAN_TX -> OFF, ON_CANT_TX -> OFF, ON
-					elif e_trace[k] == 0:
-						STATE = DeviceState.OFF 
-						k += 1
+									# we apply linear energy usage for each sample and get harvested amount each step
+									e_trace[k+1:k+1+self.packet_size] = (-self.linear_usage[:] + e_harvest[k+1:k+1+self.packet_size]) + e_trace[k]
+									
+									k += (self.packet_size+1)
 					else:
 						k += 1
 				else:
-					k += 1
+					raise SystemError(f"Should not ever end up here. System state is {STATE}")
 		
-		packets = self._obtain_packets(df, valid, actions)
+		packets = self._obtain_packets(df, valid, actions.cpu())
 
 		return packets, e_trace, actions 
 		
@@ -276,7 +278,7 @@ class Device(nn.Module):
 		num_to_nan_transition_indices = np.where(np.isnan(og_data) & ~np.isnan(rolled_data))[0] # ending idxs
 		
 		# now get the actually sampled data as a list of windows
-		arr = torch.tensor(df[['x_eh','y_eh','z_eh']].values, dtype=torch.float32, device=self.device)
+		arr = torch.tensor(df[['x_eh','y_eh','z_eh']].values, dtype=torch.float32).cpu()
 		packet_data = [                                                                               
 			# this zip operation is important because if we end halfway through a packet it is skipped (number of starts and ends must match)
 			arr[packet_start_idx : packet_end_idx] for packet_start_idx,packet_end_idx in zip(nan_to_num_transition_indices,num_to_nan_transition_indices)
@@ -299,6 +301,9 @@ class Device(nn.Module):
 		if len(packet_data) != 0:
 			sent_times = torch.arange(len(df['time'].values))[packet_start_idx]
 			packet_data = torch.stack(packet_data)
+
+			sent_times = sent_times.to(device=self.device)
+			packet_data = packet_data.to(device=self.device)
 		else:
 			sent_times = None
 			packet_data = None
@@ -329,6 +334,7 @@ class Device(nn.Module):
 
 		DELAY_SIZE = 1
 		first_sample_idx = int(packets[0][0]*DELAY_SIZE)
+		last_sample_idx = int(packets[0][-1])
 
 		# classify every single sample
 		num_windows = len(labels) - first_sample_idx
@@ -352,19 +358,25 @@ class Device(nn.Module):
 		preds_policy = torch.tensor([], dtype=torch.long, device=self.device)
 		targets_policy = []
 
+		# TODO: fix this!
 		for i, (t,win) in enumerate(zip(*packets)):
 			# get next window
-			# sample_idx = int(at*DELAY_SIZE)
-			if i < len(packets[0])-1:
+			is_last_packet = (i == len(packets[0]) - 1)
+
+			if not is_last_packet:
 				count = int(packets[0][i+1] - packets[0][i])
 				outputs_policy.append(outputs[i].repeat(count, 1))
 				preds_policy = torch.cat((preds_policy, preds[i].repeat(count)))
 			else:
-				count = int(len(labels) - (packets[0][i]-self.packet_size+1))
-				outputs_policy.append(outputs[i].repeat(count, 1))
-				preds_policy = torch.cat((preds_policy, preds[i].repeat(count)))
+				# If last packet, extend preds_policy to be length (len(labels) - self.packet_size)
+				count = int(len(labels) - self.packet_size - (packets[0][i]+1))
+				if count > 0:
+					outputs_policy.append(outputs[i].repeat(count, 1))
+					preds_policy = torch.cat((preds_policy, preds[i].repeat(count)))
 
-		targets_policy = labels[int(packets[0][0])-self.packet_size+1:]
+		targets_policy = labels[first_sample_idx : (len(labels) - self.packet_size - 1)]
+
+		print("Preds shape", preds_policy.shape, "Targets shape", targets_policy.shape)
 
 		# If did not sample at all, make targets_policy = all labels and outputs_policy to be all zeros so policy incurs high loss
 		if len(packets[0]) == 0:
@@ -373,9 +385,8 @@ class Device(nn.Module):
 		
 		return outputs_policy, preds_policy, targets_policy
 	
-	def forward(self, data, labels, training):
+	def forward_rl(self, data, labels, training):
 		if training:
-			params = [0.0, 0.0] # this is the same as opportunistic
 			segment_data, segment_labels = self._sample_segment(data, labels)
 
 			# add time axis
@@ -384,7 +395,7 @@ class Device(nn.Module):
 
 			# add the time axis to the data
 			train_full_data_window = torch.cat((t_axis, segment_data), dim=1)
-			learned_packets, e_trace, actions = self.forward_sensor(params, train_full_data_window)
+			learned_packets, e_trace, actions = self.forward_sensor(train_full_data_window)
 
 			# If nothing is sampled, return None
 			if learned_packets[0] is None:
@@ -400,19 +411,26 @@ class Device(nn.Module):
 			# print("Classifier preds shape", classifier_preds.shape)
 
 			rewards = torch.where(classifier_preds == classifier_targets, 1, 0)
-			rewards = torch.cumsum(rewards, dim=0)	/ torch.arange(1,len(rewards)+1) # cumulative mean
+			rewards = torch.cumsum(rewards, dim=0)	/ torch.arange(1,len(rewards)+1, device=self.device) # cumulative mean
 			full_states = torch.stack((e_trace, actions), dim=1)
 
 			states = torch.tensor([], dtype=torch.float32, device=self.device)
 			for i in range(full_states.shape[0] - self.HISTORY_SIZE):
 				current_state = full_states[i : i+self.HISTORY_SIZE].unsqueeze(0)
 				states = torch.cat((states, current_state))
-			states = torch.cat((states, 9999*torch.ones((1,self.HISTORY_SIZE,2)))) 
+			states = torch.cat((
+				states, 
+	 			9999*torch.ones((1,self.HISTORY_SIZE,2), device=self.device)
+				)) 
 
 			state = states[:-1]
 			actions = actions[self.HISTORY_SIZE:]
+			print("rewards shape", rewards.shape, "state shape", state.shape, "full state shape", full_states.shape)
 			# pad rewards with zero (it is shorter because classifier has not sent)
-			rewards = torch.cat((torch.zeros(state.shape[0]-rewards.shape[0]), rewards))
+			rewards = torch.cat((
+				torch.zeros(state.shape[0]-rewards.shape[0], device=self.device), 
+				rewards
+				))
 			next_state = states[1:]
 			truncated = False
 
@@ -425,7 +443,7 @@ class Device(nn.Module):
 	
 	def forward_zeroth(self, params, data, labels, training):
 		if training:
-			learned_packets, e_trace, actions = self.forward_sensor(params, data)
+			learned_packets, e_trace, actions = self.forward_sensor(data, params)
 
 			# If nothing is sampled, return None
 			if learned_packets[0] is None:

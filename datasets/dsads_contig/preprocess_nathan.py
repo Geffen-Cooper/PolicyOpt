@@ -156,6 +156,12 @@ if __name__ == '__main__':
     val_label_pool = {act: np.zeros(val_pool_len) for act in activities}
     testing_label_pool = {act: np.zeros(test_pool_len) for act in activities}
 
+    """
+    TODO
+    [[sequence of segment_len trajs for participant 0],
+     [sequence of segment_len trajs for participant 1],
+     [sequence of segment_len trajs for participant 2]]
+    """
     # merge data for each participant
     for user_i, user_folder in enumerate(participant_folders):
         if user_i not in users:

@@ -47,7 +47,7 @@ class DeviceTrainer():
 	
 	def _load_data(self):
 		self.data = load_data(self.data_dir, self.device)
-		train_data = torch.tensor(self.data['train'][0])
+		train_data = self.data['train'][0]
 		# Compute mean and std used to normalize sensor data fed to classifier
 		self.mean = torch.mean(train_data, dim=0)
 		self.std = torch.std(train_data, dim=0)

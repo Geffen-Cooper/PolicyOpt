@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 from functools import partial
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from itertools import product
 from sklearn.metrics import f1_score
 from experiments.trainer import DeviceTrainer
+from experiments.zero_order_algos import signSGD
 
 torch.set_printoptions(sci_mode=True)
 
@@ -17,10 +17,10 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
     def _build_optimizer(self, lr):
         # init_params = [1.5e-4, 1e1] # MAX_E - thresh, 
         # init_params = [2e-5, 2e1]
-        init_params = [0.0, 9e1]
+        init_params = [1e-5, 1e2]
         # Initialize optimizer
         f = partial(self.sensor.forward_zeroth, training=True)
-        self.optimizer = ZerothOrderOptimizer(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=[[0.0, 1.5e-4], [0.0, 100.0]])
+        self.optimizer = signSGD(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=[[0.0, 1.5e-4], [0.0, 100.0]])
 
     def optimize_model(self, *f_args):
         return self.optimizer.forward(*f_args)
@@ -84,14 +84,14 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
                 t_axis = t_axis.reshape(-1,1)
                 val_full_data_window = torch.cat((t_axis, segment_data), dim=1)
 
-                learned_packets, learned_e_trace, actions = self.sensor.forward_sensor(self.optimizer.params, val_full_data_window)
+                learned_packets, learned_e_trace, actions = self.sensor.forward_sensor(val_full_data_window, self.optimizer.params)
                 
                 if learned_packets[0] is None:
                     # Policy did not sample at all
                     # print(f"Iteration {iteration}: Policy did not sample at all during validation!")
                     continue
 
-                opp_packets, opp_e_trace, opp_actions = self.sensor.forward_sensor(torch.zeros(2), val_full_data_window, policy_mode="opportunistic") # opportunistic params are [0.0, 0.0]
+                opp_packets, opp_e_trace, opp_actions = self.sensor.forward_sensor(val_full_data_window, policy_mode="opportunistic") # opportunistic params are [0.0, 0.0]
                 
 
                 outputs_learned, preds_learned, targets_learned = self.sensor.forward_classifier(segment_labels,learned_packets)
@@ -162,13 +162,13 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
             t_axis = t_axis.reshape(-1,1)
             test_full_data_window = torch.cat((t_axis, data), dim=1)
 
-            learned_packets, learned_e_trace, actions = self.sensor.forward_sensor(params, test_full_data_window)
+            learned_packets, learned_e_trace, actions = self.sensor.forward_sensor(test_full_data_window, params)
 
             if learned_packets[0] is None:
                 print("Learned policy did not send during test time")
                 return
 
-            opp_packets, opp_e_trace, opp_actions = self.sensor.forward_sensor(torch.zeros(2), test_full_data_window, policy_mode="opportunistic") # opportunistic params are [0.0, 0.0] 
+            opp_packets, opp_e_trace, opp_actions = self.sensor.forward_sensor(test_full_data_window, policy_mode="opportunistic")
 
             outputs_learned, preds_learned, targets_learned = self.sensor.forward_classifier(labels,learned_packets)
 
@@ -208,11 +208,11 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
         policy_sample_times = (learned_packets[0]).long()
         opp_sample_times = (opp_packets[0]).long()
         self.fig.suptitle(r"$\alpha = {:.3e}, \tau = {:.3e}$".format(params[0], params[1]))
-        self.axs.axhline(y=self.sensor.thresh, linestyle='--', color='green') # Opportunistic policy will send at this energy
         self.axs.plot(t_axis, learned_e_trace)
         self.axs.plot(t_axis, opp_e_trace, linestyle='--')
         self.axs.scatter(t_axis[policy_sample_times], learned_e_trace[policy_sample_times], s=100, label='policy')
         self.axs.scatter(t_axis[opp_sample_times], opp_e_trace[opp_sample_times], marker='D', s=100, alpha=0.3,label='opp')
+        self.axs.axhline(y=self.sensor.thresh, linestyle='--', color='green') # Opportunistic policy will send at this energy
         self.axs.set_xlabel("Time")
         self.axs.set_ylabel("Energy")
         self.axs.legend()
@@ -221,70 +221,6 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
         self.axs.cla()
 
         return test_loss
-      
-class ZerothOrderOptimizer():
-    def __init__(self, init_params, epsilon, batch_size, f, params_bounds=None):
-        self.params = torch.tensor(init_params)
-        self.params_bounds = torch.tensor(params_bounds) if params_bounds is not None else None
-        self.epsilon = torch.tensor(epsilon)
-        self.batch_size = batch_size
-        self.f = f # optimizing wrt first input of f
-
-        self.near_convergence = 0
-    
-    def _check_params_in_bounds(self, param):
-        if self.params_bounds is not None:
-            for i,p in enumerate(param):
-                if not self.params_bounds[i,0] <= p <= self.params_bounds[i,1]:
-                    # print(f"{param} is out of bounds!")
-                    return False
-            return True
-        else:
-            return True
-    
-    def estimate_gradient_and_descent_direction(self, f_args):
-        # estimate gradient of f using zeroth-order methods
-        # evaluate f(x+\delta_x) for delta_x sampled uniformly. 
-        num_params = len(self.params)
-        delta_permutations = torch.tensor(list(product([-1,0,1], repeat=num_params)), dtype=torch.float32)
-        # delta_permutations = F.normalize(delta_permutations, eps=1.0)
-        evaluations = torch.zeros(delta_permutations.shape[0])
-        for _ in range(self.batch_size):
-            for k, delta in enumerate(delta_permutations):
-                if self._check_params_in_bounds(self.params + self.epsilon * delta):
-                    param = self.params + self.epsilon * delta
-                    evaluations[k] += self.f(param, **f_args) / self.batch_size      
-                else:
-                    evaluations[k] += -1 # add a negative number since out of bounds
-        
-        max_value = torch.max(evaluations)
-        # Get index of max value. If there are multiple then choose randomly.
-        max_index = (evaluations == max_value).nonzero()
-        max_index = max_index[torch.randint(low=0, high=len(max_index), size=())].item()
-        descent_direction = delta_permutations[max_index]
-        
-        # if max_value != 0.0:
-            # descent_direction *= max_value # max_value \in [0,1] is the mean reward
-
-        return descent_direction, max_value
-
-    def point_update(self, descent_direction):
-        if self._check_params_in_bounds(self.params + self.epsilon * descent_direction):
-            return self.params + self.epsilon * descent_direction
-        else:
-            return self.params
-
-    def forward(self, f_args):
-        params_before = self.params
-        descent_direction, max_value = self.estimate_gradient_and_descent_direction(f_args)
-        self.params = self.point_update(descent_direction)
-
-        if torch.equal(params_before, self.params):
-            self.epsilon /= 2
-            self.near_convergence += 1
-            print(f"Decreasing epsilon to {self.epsilon}")
-            
-        return max_value
     
 if __name__ == '__main__':
     import argparse
@@ -292,14 +228,15 @@ if __name__ == '__main__':
     parser.add_argument("--load_path", type=str, default=None)
     args = parser.parse_args()
 
-    exp_name = "TestPolicy"
+    exp_name = "ZerothOrderPolicy"
     epochs = 5_000
     load_path = args.load_path
     seed = 0
     policy_model = "MLP"
     device = "cpu"
     # lr = [0.5e-4, 1e1]
-    lr = [0.5e-4, 1e1]
+    # lr = [0.5e-4, 1e1]
+    lr = [1e-5, 5]
     policy_mode = "conservative"
 
     # sensor_cfg = (packet_size, leakage, init_overhead, duration_range, history_size, sample_frequency)

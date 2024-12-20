@@ -34,6 +34,9 @@ class RLDeviceTrainer(DeviceTrainer):
 		self.criterion = nn.SmoothL1Loss() # the loss function
 
 	def optimize_model(self):
+		"""
+			TODO: select action using epsilon-greedy for exploration!!
+		"""
 		if len(self.memory) < self.train_cfg['batch_size']:
 			return
 		
@@ -45,7 +48,7 @@ class RLDeviceTrainer(DeviceTrainer):
 		action_batch = torch.cat(batch.action)
 		reward_batch = torch.cat(batch.reward)
 
-		# print("State batch print", state_batch.shape)
+		print("State batch shape", state_batch.shape)
 		# print("Last energy batch shape", state_energy_batch.shape)
 		# print("Action batch shape", action_batch.shape)
 		# print("Reward batch shape", reward_batch.shape)
@@ -53,13 +56,13 @@ class RLDeviceTrainer(DeviceTrainer):
 		state_energy_mask = torch.where(state_energy_batch >= self.sensor.thresh, 1, 0)
 		next_state_energy_mask = torch.where(next_state_energy_batch >= self.sensor.thresh, 1, 0)
 
-		non_final_mask = torch.tensor([], dtype=torch.bool, device=self.sensor.device)
+		non_final_mask = torch.tensor([], dtype=torch.bool, device=self.device)
 		for b in batch.next_state:
 			for s in b:
 				if s.all() == 9999: # This is for None
-					non_final_mask = torch.cat((non_final_mask, torch.tensor([0])))
+					non_final_mask = torch.cat((non_final_mask, torch.tensor([0], device=self.device)))
 				else:
-					non_final_mask = torch.cat((non_final_mask, torch.tensor([1])))
+					non_final_mask = torch.cat((non_final_mask, torch.tensor([1], device=self.device)))
 		
 		non_final_next_states = torch.cat([s for s in batch.next_state if s.all() != 9999])
 
@@ -89,8 +92,8 @@ class RLDeviceTrainer(DeviceTrainer):
 		# print("State action values shape", state_action_values.shape)
 		# print("Action idx shape", action_idx.shape)
 
-		# next_state_values = torch.zeros(self.train_cfg['batch_size'], device=self.sensor.device) # TODO
-		next_state_values = torch.zeros(state_batch.shape[0], device=self.sensor.device)
+		# next_state_values = torch.zeros(self.train_cfg['batch_size'], device=self.device) # TODO
+		next_state_values = torch.zeros(state_batch.shape[0], device=self.device)
 		with torch.no_grad():
 			# only evaluate the Q network when enough_energy_mask is valid
 			valid_next_state_values = self.sensor.Q_network(valid_next_states.flatten(start_dim=1))
@@ -111,7 +114,7 @@ class RLDeviceTrainer(DeviceTrainer):
 		loss = 0.0
 		train_data, train_labels = self.data['train']
 
-		state, action, reward, next_state, truncated = self.sensor.forward(train_data, train_labels, training=True)
+		state, action, reward, next_state, truncated = self.sensor.forward_rl(train_data, train_labels, training=True)
 		if truncated: 
 			return
 		self.memory.push(state, action, reward, next_state)
@@ -160,7 +163,7 @@ class RLDeviceTrainer(DeviceTrainer):
 						'val_classification_accuracy': val_loss['avg_reward'],
 					}, self.sensor_path)
 		
-		self.validate(self, iteration+1, writer, *self.data['test'])
+		test_loss = self.test(*self.data['test'])
 	
 	def validate(self, iteration, writer, data, labels, val_iterations):
 		self.sensor.eval()
@@ -207,7 +210,7 @@ class RLDeviceTrainer(DeviceTrainer):
 		val_policy_f1 /= val_iterations
 		val_opp_f1 /= val_iterations
 
-		print("Iteration: {}, val_policy_f1_score: {:.3f}, val_opp_f1_score {:.3f}".format(iteration, val_policy_f1, val_opp_f1))
+		print("Iteration: {}, val_policy_f1_score: {:.3f}, val_opp_f1_score {:.3f}, policy reward: {:.3f}, opp reward: {:.3f}".format(iteration, val_policy_f1, val_opp_f1, learned_reward, opp_reward))
 
 		writer.add_scalar("val_metric/f1_difference", val_policy_f1 - val_opp_f1, iteration)
 		writer.add_scalar("val_metric/policy_f1", val_policy_f1, iteration)
@@ -225,13 +228,13 @@ class RLDeviceTrainer(DeviceTrainer):
 			print(f"Iteration {iteration}: Policy did not sample at all during validation so no validation plot!")
 			return val_loss
 		
-		policy_sample_times = (learned_packets[0]).long() - self.sensor.packet_size
-		opp_sample_times = (opp_packets[0]).long() - self.sensor.packet_size
-		self.axs.axhline(y=self.sensor.thresh, linestyle='--', color='green') # Opportunistic policy will send at this energy
+		policy_sample_times = (learned_packets[0]).long()
+		opp_sample_times = (opp_packets[0]).long()
 		self.axs.plot(val_t_axis, learned_e_trace)
 		self.axs.plot(val_t_axis, opp_e_trace, linestyle='--')
-		self.axs.scatter(val_t_axis[policy_sample_times], learned_e_trace[policy_sample_times], label='policy')
-		self.axs.scatter(val_t_axis[opp_sample_times], opp_e_trace[opp_sample_times], marker='D', label='opp')
+		self.axs.scatter(val_t_axis[policy_sample_times], learned_e_trace[policy_sample_times], s=100, label='policy')
+		self.axs.scatter(val_t_axis[opp_sample_times], opp_e_trace[opp_sample_times], marker='D', s=100, alpha=0.3, label='opp')
+		self.axs.axhline(y=self.sensor.thresh, linestyle='--', color='green') # Opportunistic policy will send at this energy
 		self.axs.set_xlabel("Time")
 		self.axs.set_ylabel("Energy")
 		self.axs.legend()
@@ -241,33 +244,106 @@ class RLDeviceTrainer(DeviceTrainer):
 
 		return val_loss
 
+	def test(self, data, labels):
+		self.sensor.eval()
+		learned_reward = 0.0
+		opp_reward = 0.0
+		test_policy_f1 = 0.0
+		test_opp_f1 = 0.0
+
+		with torch.no_grad():
+			t_axis = torch.arange(len(labels), dtype=torch.float64, device=self.device)/self.sensor.FS
+			t_axis = t_axis.reshape(-1,1)
+			test_full_data_window = torch.cat((t_axis, data), dim=1)
+
+			learned_packets, learned_e_trace, actions = self.sensor.forward_sensor(test_full_data_window)
+
+			if learned_packets[0] is None:
+				print("Learned policy did not send during test time")
+				return
+
+			opp_packets, opp_e_trace, opp_actions = self.sensor.forward_sensor(test_full_data_window, policy_mode="opportunistic")
+
+			outputs_learned, preds_learned, targets_learned = self.sensor.forward_classifier(labels,learned_packets)
+
+			outputs_opp, preds_opp, targets_opp = self.sensor.forward_classifier(labels,opp_packets)
+
+			learned_reward += torch.where(preds_learned == targets_learned, 1, 0).sum() / len(preds_learned)
+			opp_reward += torch.where(preds_opp == targets_opp, 1, 0).sum() / len(preds_opp)
+
+			test_policy_f1 += f1_score(
+				targets_learned.detach().cpu().numpy(), preds_learned.detach().cpu().numpy(), average='macro'
+			)
+			test_opp_f1 += f1_score(
+				targets_opp.detach().cpu().numpy(), preds_opp.detach().cpu().numpy(), average='macro'
+			)
+		
+		num_test_trajs = data.shape[0]
+		
+		# learned_reward /= num_test_trajs
+		# opp_reward /= num_test_trajs
+		# test_policy_f1 /= num_test_trajs
+		# test_opp_f1 /= num_test_trajs
+
+		print("Test: policy F1: {:.3f}, opportunistic F1 {:.3f}, policy avg reward: {:.3f}, opportunistic avg reward: {:.3f}".format(test_policy_f1, test_opp_f1, learned_reward, opp_reward))
+
+		test_loss = {
+			'f1': test_policy_f1,
+			'avg_reward': learned_reward,
+			'avg_opp_reward': opp_reward,
+			'avg_reward_diff': learned_reward - opp_reward,
+		}
+
+		if learned_packets[0] is None:
+			# Policy did not sample at all
+			print(f"Policy did not sample at all during testing so no testing plot!")
+			return test_loss
+		
+		policy_sample_times = (learned_packets[0]).long()
+		opp_sample_times = (opp_packets[0]).long()
+		self.axs.plot(t_axis, learned_e_trace)
+		self.axs.plot(t_axis, opp_e_trace, linestyle='--')
+		self.axs.scatter(t_axis[policy_sample_times], learned_e_trace[policy_sample_times], s=100, label='policy')
+		self.axs.scatter(t_axis[opp_sample_times], opp_e_trace[opp_sample_times], marker='D', s=100, alpha=0.3,label='opp')
+		self.axs.axhline(y=self.sensor.thresh, linestyle='--', color='green') # Opportunistic policy will send at this energy
+		self.axs.set_xlabel("Time")
+		self.axs.set_ylabel("Energy")
+		self.axs.legend()
+		plt.tight_layout()
+		plt.savefig(f"{self.plot_dir}/plot_test.png")
+		self.axs.cla()
+
+		return test_loss
+
 if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--load_path", type=str, default=None)
+	parser.add_argument("--device", type=str, default="cpu")
 	args = parser.parse_args()
 
-	exp_name = "TestPolicy"
+	assert(args.device == "cpu" or args.device == "cuda"), f"Invalid device: {args.device}"
+
+	exp_name = "RLPolicy"
 	epochs = 5_000
 	load_path = args.load_path
 	seed = 0
 	policy_model = "MLP"
-	device = "cpu"
-	lr = 1e-3
-	policy_mode = "learned_policy"
+	device = args.device
+	lr = 1e-4
+	policy_mode = "rl"
 
 	sensor_net_cfg = {
-		'in_dim': 32, # buffer=16, 2*buffer
-		'hidden_dim': 32
+		'in_dim': 200, # 2*buffer
+		'hidden_dim': 256,
 	}
 
-	# sensor_cfg = (packet_size, leakage, init_overhead, duration_range, history_size, sample_frequency)
 	sensor_cfg = {
 		'packet_size': 8,
 		'leakage': 6e-6,
 		'init_overhead': 150e-6,
-		'duration_range': (10,100),
-		'history_size': 16,
+		'duration_range': (1000,2000),
+		'history_size': 100,
 		'sample_frequency': 25,
 		'sensor_net_cfg': sensor_net_cfg,
 	}
@@ -278,7 +354,7 @@ if __name__ == '__main__':
 		'val_iters': 10,
 		'val_every_epochs': 25,	
 		'gamma': 0.99,
-		'replay_buffer_capacity': 10_000,	
+		'replay_buffer_capacity': 10,	
 	}
 
 	classifier_cfg = {
@@ -288,10 +364,3 @@ if __name__ == '__main__':
 
 	trainer = RLDeviceTrainer(exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, lr, seed)
 	trainer.train()
-
-
-	# assert (device == "cuda" or device == "cpu")
-	# assert (policy_model == "MLP" or policy_model == "ResNet")
-
-	# assert(PACKET_SIZE <= BUFFER_SIZE), f"Packet size must be smaller than buffer size. Got packet size {PACKET_SIZE} and buffer size {BUFFER_SIZE}"
-	# assert(PACKET_SIZE < DURATION_RANGE[0] * FS), f"The minimum duration range must be longer than the packet size. Got packet size {PACKET_SIZE} and min duration {DURATION_RANGE[0]}"
