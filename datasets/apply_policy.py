@@ -12,7 +12,8 @@ class DeviceState(Enum):
 
 
 def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, init_overhead: float, \
-				  eh: EnergyHarvester, policy='opportunistic', learned_policy=None, train_mode=True, past_actions=[]):
+				  eh: EnergyHarvester, policy='opportunistic', learned_policy=None, train_mode=True, past_actions=[],
+				  label_sequence=None, is_active=None):
 	""" Converts a 3 axis har signal into a sparse version based on energy harvested.
 
 	In general: e_t+1 = e_t + e_h - e_l
@@ -79,7 +80,7 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 	np.save("e_out.npy",e_out)
 	valid, thresh = eh.generate_valid_mask(e_out, packet_size)
 
-	# assume max energy we can store is ~ 3*thresh needed to sample/TX
+	# assume max energy we can store is ~ 4*thresh needed to sample/TX
 	MAX_E = 4*thresh
 
 	# create a mask of seen and unseen data
@@ -117,10 +118,12 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 	# energy starts from 0 at time step 0 so simulate from timestep 1
 	k=1
 
+	# oracle switches between conservative and opportunistic
+	oracle_policy = "opportunistic"
+	n_sent = 0
+
 	# iterate over energy values
 	while k < len(e_trace):
-		# print(k)
-		# print(k)
 		# update energy state
 		e_trace[k] = e_trace[k-1] + e_harvest[k] - LEAKAGE_PER_SAMPLE
 		# print(k, e_trace[k],STATE,thresh,e_harvest[k],LEAKAGE_PER_SAMPLE)
@@ -180,6 +183,84 @@ def sparsify_data(data_window: np.ndarray, packet_size: int, leakage: float, ini
 				elif e_trace[k] < thresh:
 					STATE = DeviceState.ON_CANT_TX
 					k += 1
+
+		elif 'oracle' in policy:
+			
+			delta = float(policy.split('_')[1])
+			delta = delta*thresh
+			# print(thresh,delta)
+
+			# OFF -> ON_CANT_TX
+			if STATE == DeviceState.OFF: # turn on when have init overhead
+				# OFF -> ON_CANT_TX
+				if e_trace[k] >= 5*LEAKAGE_PER_SAMPLE + init_overhead and k+1 < len(e_trace):
+					STATE = DeviceState.ON_CANT_TX
+					e_trace[k+1] = e_trace[k] - init_overhead # apply overhead instantly
+					k += 2
+				# OFF -> OFF
+				else:
+					k += 1
+			# ON_CANT_TX -> ON_CAN_TX, ON_CANT_TX -> OFF, ON_CANT_TX -> ON_CANT_TX
+			elif STATE == DeviceState.ON_CANT_TX:
+				# print("cant transmit")
+				''' POLICY: ON_CANT_TX -> ON_CAN_TX'''
+
+				# first determine if opportunistic or conservative
+				active = is_active[int(label_sequence[k])]
+				if active:
+					oracle_policy = 'conservative'
+				else:
+					oracle_policy = 'opportunistic'
+
+				# then use this to check the send condition
+				send = False
+				if oracle_policy == 'opportunistic':
+					send = (e_trace[k] >= thresh + 5*LEAKAGE_PER_SAMPLE)
+				elif oracle_policy == 'conservative':
+					send = (e_trace[k] >= thresh + 5*LEAKAGE_PER_SAMPLE + (n_sent+1)*delta) or e_trace[k] == MAX_E
+					# print(thresh,thresh + 5*LEAKAGE_PER_SAMPLE + (n_sent+1)*delta)
+
+				if send:
+					# print(f"k: {k}, state: --> ON_CAN_TX")
+					STATE = DeviceState.ON_CAN_TX
+					# we are within one packet of the end of the data
+					if k + packet_size + 1 >= len(e_trace):
+						valid[k+1:] = 1
+						e_trace[k+1:] = (-linear_usage[:len(e_trace)-k-1] + e_harvest[k+1:]) + e_trace[k]
+						k += (packet_size+1)
+						break
+					# once thresh is reached, we start sampling on the next sample
+					valid[k+1:k+1+packet_size] = 1
+
+					# we apply linear energy usage for each sample and get harvested amount each step
+					e_trace[k+1:k+1+packet_size] = (-linear_usage[:] + e_harvest[k+1:k+1+packet_size]) + e_trace[k]
+					
+					k += (packet_size+1)
+
+					n_sent += 1
+				# ON_CANT_TX -> OFF
+				elif e_trace[k] == 0:
+					# print(f"k: {k}, state: --> OFF")
+					STATE = DeviceState.OFF
+					k += 1
+					n_sent = 0
+				# ON_CANT_TX -> ON_CANT_TX
+				else:
+					# print(f"k: {k}, state: --> ON_CAN_TX")
+					STATE = DeviceState.ON_CANT_TX
+					k += 1
+			# ON_CAN_TX -> OFF, ON_CAN_TX -> ON_CANT_TX
+			elif STATE == DeviceState.ON_CAN_TX:
+				if e_trace[k] == 0: # device died
+					STATE = DeviceState.OFF
+					k += 1
+				elif e_trace[k] < thresh:
+					STATE = DeviceState.ON_CANT_TX
+					k += 1
+				elif e_trace[k] >= thresh: # conservative
+					STATE = DeviceState.ON_CANT_TX
+					k += 1
+
 
 		''' ---------- Learned Policy'''
 		if policy == 'learned_policy':
