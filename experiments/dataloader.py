@@ -2,7 +2,43 @@ import os
 import numpy as np
 import torch
 
-def load_data(dir, device):
+def load_user_data(dir: os.PathLike, val_user: int, device: str, users:int=8):
+    """ Leave one user out cross validation """
+    train_data = []
+    train_labels = []
+    val_data = []
+    val_labels = []
+
+    for k in range(users):
+        data = np.load(f"{dir}/data_{k}.npy")
+        labels = np.load(f"{dir}/labels_{k}.npy")
+        data = torch.tensor(data, dtype=torch.float32, device=device)
+        labels = torch.tensor(labels, dtype=torch.long, device=device)
+        
+        if k == val_user:
+            val_data.append(data)
+            val_labels.append(labels)
+        else:
+            train_data.append(data)
+            train_labels.append(labels)
+    
+    train_data = torch.cat(train_data)
+    train_labels = torch.cat(train_labels)
+    val_data = torch.cat(val_data)
+    val_labels = torch.cat(val_labels)
+
+    print("Train data and labels shapes {}, {}".format(train_data.shape, train_labels.shape))
+    print("Val data and labels shapes {}, {}".format(val_data.shape, val_labels.shape))
+
+    data = {
+        'train': (train_data, train_labels),
+        'val': (val_data, val_labels),
+        'test': (val_data, val_labels), # TODO
+    }
+
+    return data
+
+def load_merged_data(dir: os.PathLike, device: str):
     # load data
     train_data = np.load(f"{dir}/training_data.npy")
     train_labels = np.load(f"{dir}/training_labels.npy")

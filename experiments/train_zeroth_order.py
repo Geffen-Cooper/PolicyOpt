@@ -6,7 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from sklearn.metrics import f1_score
 from experiments.trainer import DeviceTrainer
-from experiments.zero_order_algos import signSGD
+from experiments.zero_order_algos import signSGD, SGD
 
 torch.set_printoptions(sci_mode=True)
 
@@ -18,9 +18,11 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
         # init_params = [1.5e-4, 1e1] # MAX_E - thresh, 
         # init_params = [2e-5, 2e1]
         init_params = [1e-5, 1e2]
+        params_bounds = [[0.0, 1.5e-4], [0.0, 100.0]]
         # Initialize optimizer
         f = partial(self.sensor.forward_zeroth, training=True)
-        self.optimizer = signSGD(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=[[0.0, 1.5e-4], [0.0, 100.0]])
+        # self.optimizer = signSGD(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=params_bounds)
+        self.optimizer = SGD(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=params_bounds)
 
     def optimize_model(self, *f_args):
         return self.optimizer.forward(*f_args)
@@ -228,7 +230,7 @@ if __name__ == '__main__':
     parser.add_argument("--load_path", type=str, default=None)
     args = parser.parse_args()
 
-    exp_name = "ZerothOrderPolicy"
+    exp_name = "ZO_SGD_Policy"
     epochs = 5_000
     load_path = args.load_path
     seed = 0

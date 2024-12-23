@@ -7,7 +7,7 @@ from experiments.models import SimpleNet
 from datasets.energy_harvest import EnergyHarvester
 from datasets.apply_policy_nathan import Device
 
-from experiments.dataloader import load_data
+from experiments.dataloader import load_user_data
 
 class DeviceTrainer():
 	def __init__(self, exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, lr, seed):
@@ -38,15 +38,17 @@ class DeviceTrainer():
 		
 		# path where model parameters will be saved
 		self.sensor_path = os.path.join(self.log_dir, "model_params.pt")
-		self.data_dir = os.path.join(self.root_dir,"datasets/dsads_contig/merged_preprocess")
+		# self.data_dir = os.path.join(self.root_dir,"datasets/dsads_contig/merged_preprocess")
+		self.data_dir = os.path.join(self.root_dir, "saved_data/processed_data/LOOCV_preprocessed_data")
 
 		self.plot_dir = os.path.join(self.log_dir, "plots")
 
 		if not os.path.isdir(self.plot_dir): 
 			os.makedirs(self.plot_dir)
 	
-	def _load_data(self):
-		self.data = load_data(self.data_dir, self.device)
+	def _load_data(self):   
+		# self.data = load_merged_data(self.data_dir, self.device)
+		self.data = load_user_data(self.data_dir, 0, self.device)
 		train_data = self.data['train'][0]
 		# Compute mean and std used to normalize sensor data fed to classifier
 		self.mean = torch.mean(train_data, dim=0)
