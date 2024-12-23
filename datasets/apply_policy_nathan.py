@@ -12,12 +12,26 @@ class DeviceState(Enum):
 	ON = 1 # otherwise
 
 class Device(nn.Module):
+	""" 
+	TODO:
+	1. make into different devices depending on data transmission policy (e.g. OpportunisticDevice, ConservativeDevice, RLDevice, etc) 
+	2. don't use dataframe
+	"""
 	def __init__(self, 
-				 packet_size, leakage, init_overhead, eh, policy_mode, duration_range,
-				 history_size, sample_frequency,
-				 sensor_net_cfg, classifier,
-				 mean, std,
-				 device, seed):
+				 packet_size: int, 
+				 leakage: float, 
+				 init_overhead: float, 
+				 eh: EnergyHarvester, 
+				 policy_mode: str, 
+				 duration_range: tuple,
+				 history_size: int, 
+				 sample_frequency: float,
+				 sensor_net_cfg: dict, 
+				 classifier: nn.Module,
+				 mean: float, 
+				 std: float,
+				 device: str, 
+				 seed: int):
 		super().__init__()
 		self.packet_size = packet_size
 		self.init_overhead = init_overhead
@@ -43,7 +57,7 @@ class Device(nn.Module):
 		if self.policy_mode == "rl":
 			self.Q_network = DiscreteQNetwork(2, **sensor_net_cfg).to(device=self.device)
 		else:
-			raise NotImplementedError()
+			pass
 	
 	def preprocess_data(self, data_window):
 		# create pandas data frame as specified by EnergyHarvester.power() function
@@ -93,6 +107,9 @@ class Device(nn.Module):
 		else:
 			raise NotImplementedError()
 
+	def _send_condition(self, params):
+		return True
+
 	def forward_sensor(self, data, params=[0.0, 0.0], policy_mode=None):
 		if policy_mode is None:
 			policy_mode = self.policy_mode
@@ -140,7 +157,10 @@ class Device(nn.Module):
 				e_trace[k] = self.MAX_E
 			elif e_trace[k] < 0:
 				e_trace[k] = 0
-			
+
+			# TODO: Generalize sensor logic to a method provided as input 
+			# Input: DeviceState, e_trace[k], params
+
 			'''Opportunistic Policy'''
 			if policy_mode == 'opportunistic' or policy_mode == 'conservative':
 				# update device state
@@ -165,7 +185,7 @@ class Device(nn.Module):
 						STATE = DeviceState.OFF
 						k += 1
 					# Send if energy is above threshold
-					elif e_trace[k] >= self.thresh + alpha + 5*self.LEAKAGE_PER_SAMPLE and (k - last_sent_idx >= tau):
+					elif e_trace[k] >= self.thresh + alpha + 5*self.LEAKAGE_PER_SAMPLE and (k - last_sent_idx >= tau): # TODO: replace with self._send_condition(params)
 						# we are within one packet of the end of the data
 						if k + self.packet_size + 1 >= len(e_trace):
 							k += (self.packet_size+1)
@@ -376,8 +396,6 @@ class Device(nn.Module):
 
 		targets_policy = labels[first_sample_idx : (len(labels) - self.packet_size - 1)]
 
-		print("Preds shape", preds_policy.shape, "Targets shape", targets_policy.shape)
-
 		# If did not sample at all, make targets_policy = all labels and outputs_policy to be all zeros so policy incurs high loss
 		if len(packets[0]) == 0:
 			targets_policy = labels
@@ -460,7 +478,7 @@ class Device(nn.Module):
 
 			rewards = torch.where(classifier_preds == classifier_targets, 1, 0)
 			# pad rewards with zero (it is shorter because classifier has not sent)
-			# rewards = torch.cat((torch.zeros(actions.shape[0]-rewards.shape[0]), rewards))
+			rewards = torch.cat((torch.zeros(actions.shape[0]-rewards.shape[0]), rewards))
 			rewards = torch.sum(rewards) / len(rewards)
 			# print(rewards)
 

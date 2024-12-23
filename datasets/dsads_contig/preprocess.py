@@ -5,6 +5,7 @@ import re
 from scipy.signal import resample
 import argparse
 from pathlib import Path
+import random
 
 # ============ Argument parser ============
 parser = argparse.ArgumentParser(description='Preprocess DSADS Dataset')
@@ -12,10 +13,12 @@ parser.add_argument('--root_dir', type=str, default="~/Projects/data/dsads", hel
 parser.add_argument('--activity_list', nargs='+', type=int, help='List of integers')
 parser.add_argument('--body_part', type=str, default="right_leg", help='which body part to use')
 parser.add_argument('--LOOCV', action='store_true', help='save data per user for LOOCV')
-
+parser.add_argument('--seed', type=int, default=0, help='random seed')
 
 args = parser.parse_args()
 
+SEED = args.seed
+rng = np.random.default_rng(SEED)
 
 # ============ global constants ============
 body_parts = ['torso',
@@ -67,6 +70,7 @@ for bp in active_body_parts:
             active_channels.append(sensor_channel_map[bp][sensor])
 active_channels = np.array(active_channels).flatten()
 
+# TODO: change to min data length...If not hit min yet, sample random activity sequence...
 num_samples_per_activity = SEGMENT_LEN*NUM_SEGMENTS
 
 # ============ determine the labeling scheme ============
@@ -239,6 +243,8 @@ if __name__ == '__main__':
         # keep track of list indices as accumulate data from each file
         curr_train_window_idxs = {user: 0 for user in range(NUM_USERS)}
 
+        # randomoize the order of activities
+        random.shuffle(activity_folders)
 
         # merge data for each participant into a numpy array
         for user_i, user_folder in enumerate(participant_folders):
@@ -252,23 +258,36 @@ if __name__ == '__main__':
                     continue
                 # print(f"user: {user_i}, active_activity_i: {active_activity_i}, activity: {self.activity_subset[active_activity_i]}, pool_idx: {user_i*train_seg_len}, self.active_channels: {self.active_channels}")
                 # create the data array which contains samples across all segment files
-                data_array = np.zeros((num_samples_per_activity,len(active_channels)))
-                label_array = np.zeros(num_samples_per_activity)
+                # data_array = np.zeros((num_samples_per_activity,len(active_channels)))
+                # label_array = np.zeros(num_samples_per_activity)
+
+                # Randomize activity lengths
+                """ TODO: right now each activity only happens once. Change this... """
+                data_array = []
+                label_array = []
+                start = 0
                 for segment_i, segment_file in enumerate(segment_files):
                     data_file_path = os.path.join(root_dir,activity_folder,user_folder,segment_file)
                     data_segment = pd.read_csv(data_file_path,header=None).values
-                    start = segment_i*SEGMENT_LEN
-                    end = start + SEGMENT_LEN
-                    data_array[start:end,:] = data_segment[:,active_channels]
-                    label_array[start:end] = active_activity_i
+                    activity_len = rng.integers(low=0, high=SEGMENT_LEN)
+                    end = start + activity_len
+                    data_array.append(data_segment[0:activity_len,active_channels]) # TODO: randomize start idx
+                    label_array.append([active_activity_i] * activity_len)
+                    start = end
+                
+                data_array = np.concatenate(data_array)
+                label_array = np.concatenate(label_array)
 
-                # form windows
+                # print("Data array shape", data_array.shape)
+                # print("Label array shape", label_array.shape)
+
+                # form windows 
+                # TODO double check windows make sense
                 slide = int(window_len*(1-overlap_frac))
                 start_idxs = np.concatenate([np.array([curr_train_window_idxs[user_i]]),
                                             np.arange(curr_train_window_idxs[user_i]+slide,
                                             curr_train_window_idxs[user_i]+data_array.shape[0]-window_len,
-                                            slide)]) # [0+offset,25+offset,50+offset,...,7450+offset]
-                
+                                            slide)]) # [0+offset,25+offset,50+offset,...,7450+offset]                
                 # split into training, validation
                 num_train_samples = int(len(start_idxs)*(1-0.2))
             
@@ -288,8 +307,8 @@ if __name__ == '__main__':
 
         
         # now concatenate and save data
-        folder = f"{args.root_dir}/LOOCV_preprocessed_data"
-        os.mkdir(folder)
+        folder = f"{os.path.dirname(args.root_dir)}/LOOCV_preprocessed_data"
+        os.makedirs(folder, exist_ok=True)
         for user_i in range(NUM_USERS):
             training_data[user_i] = np.concatenate(training_data[user_i])
             

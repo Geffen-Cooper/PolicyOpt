@@ -2,7 +2,7 @@ env/
 *.egg-info
 __pycache__
 saved_data/runs
-saved_data/processed_data
+saved_data/dsads_data
 *.txt
 *.zip
 .ruff_cache

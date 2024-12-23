@@ -10,7 +10,7 @@ from datasets.apply_policy_nathan import Device
 from experiments.dataloader import load_user_data
 
 class DeviceTrainer():
-	def __init__(self, exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, lr, seed):
+	def __init__(self, exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, val_user, lr, seed):
 		self.policy_mode = policy_mode
 
 		self.load_path = load_path
@@ -20,7 +20,7 @@ class DeviceTrainer():
 		self.train_cfg = train_cfg
 
 		self._setup_paths(load_path, exp_name)
-		self._load_data()
+		self._load_data(data_path, val_user)
 		self._load_classifier(**classifier_cfg)
 		self._load_sensor(**sensor_cfg)
 		self._build_optimizer(lr)
@@ -46,9 +46,9 @@ class DeviceTrainer():
 		if not os.path.isdir(self.plot_dir): 
 			os.makedirs(self.plot_dir)
 	
-	def _load_data(self):   
+	def _load_data(self, data_dir, val_user=0):   
 		# self.data = load_merged_data(self.data_dir, self.device)
-		self.data = load_user_data(self.data_dir, 0, self.device)
+		self.data = load_user_data(data_dir, val_user, self.device)
 		train_data = self.data['train'][0]
 		# Compute mean and std used to normalize sensor data fed to classifier
 		self.mean = torch.mean(train_data, dim=0)

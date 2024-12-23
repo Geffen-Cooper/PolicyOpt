@@ -11,18 +11,16 @@ from experiments.zero_order_algos import signSGD, SGD
 torch.set_printoptions(sci_mode=True)
 
 class ZerothOrderDeviceTrainer(DeviceTrainer):
-    def __init__(self, exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, lr, seed):
-        super().__init__(exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, lr, seed)
+    def __init__(self, exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, val_user, lr, seed):
+        super().__init__(exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, val_user, lr, seed)
     
     def _build_optimizer(self, lr):
-        # init_params = [1.5e-4, 1e1] # MAX_E - thresh, 
-        # init_params = [2e-5, 2e1]
         init_params = [1e-5, 1e2]
         params_bounds = [[0.0, 1.5e-4], [0.0, 100.0]]
         # Initialize optimizer
         f = partial(self.sensor.forward_zeroth, training=True)
-        # self.optimizer = signSGD(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=params_bounds)
-        self.optimizer = SGD(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=params_bounds)
+        self.optimizer = signSGD(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=params_bounds)
+        # self.optimizer = SGD(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=params_bounds)
 
     def optimize_model(self, *f_args):
         return self.optimizer.forward(*f_args)
@@ -70,7 +68,7 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
                 print(f"Parameters are {best_params}")
                 break
         
-        test_loss = self.test(best_params, *self.data['test'])
+        return best_params, self.test(best_params, *self.data['test'])
             
     def validate(self, iteration, writer, data, labels, val_iterations):
         self.sensor.eval()
@@ -176,6 +174,7 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
 
             outputs_opp, preds_opp, targets_opp = self.sensor.forward_classifier(labels,opp_packets)
 
+            print("Lenghts", len(preds_learned), len(preds_opp), len(labels))
             learned_reward += torch.where(preds_learned == targets_learned, 1, 0).sum() / len(preds_learned)
             opp_reward += torch.where(preds_opp == targets_opp, 1, 0).sum() / len(preds_opp)
 
@@ -196,10 +195,10 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
         print("Test: policy F1: {:.3f}, opportunistic F1 {:.3f}, policy avg reward: {:.3f}, opportunistic avg reward: {:.3f}".format(test_policy_f1, test_opp_f1, learned_reward, opp_reward))
 
         test_loss = {
-            'f1': test_policy_f1,
-            'avg_reward': learned_reward,
-            'avg_opp_reward': opp_reward,
-            'avg_reward_diff': learned_reward - opp_reward,
+            'policy_f1': test_policy_f1,
+            'opp_f1': test_opp_f1,
+            'policy_reward': learned_reward,
+            'opp_reward': opp_reward,
         }
 
         if learned_packets[0] is None:
@@ -233,7 +232,8 @@ if __name__ == '__main__':
     exp_name = "ZO_SGD_Policy"
     epochs = 5_000
     load_path = args.load_path
-    seed = 0
+    data_path = "saved_data/dsads_data/LOOCV_preprocessed_data"
+    seed = [0,1,2]
     policy_model = "MLP"
     device = "cpu"
     # lr = [0.5e-4, 1e1]
@@ -241,7 +241,6 @@ if __name__ == '__main__':
     lr = [1e-5, 5]
     policy_mode = "conservative"
 
-    # sensor_cfg = (packet_size, leakage, init_overhead, duration_range, history_size, sample_frequency)
     sensor_cfg = {
         'packet_size': 8,
         'leakage': 6e-6,
@@ -270,5 +269,22 @@ if __name__ == '__main__':
         'num_activities': 9,
     }
 
-    trainer = ZerothOrderDeviceTrainer(exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, lr, seed)
-    trainer.train()
+    best_params = []
+    policy_f1 = 0.0
+    opp_f1 = 0.0
+    policy_reward = 0.0
+    opp_reward = 0.0
+
+    for val_user, s in enumerate(seed):
+        trainer = ZerothOrderDeviceTrainer(exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, val_user, lr, s)
+        params, test_loss = trainer.train()
+        best_params.append(params)
+
+        policy_f1 += test_loss['policy_f1'] / len(seed)
+        opp_f1 += test_loss['opp_f1'] / len(seed)
+        policy_reward += test_loss['policy_reward'] / len(seed)
+        opp_reward += test_loss['opp_reward'] / len(seed)
+    
+    print(f"Cross Validation Results over {len(seed)} seeds")
+    print("Policy F1: {:.3f}, opportunistic F1 {:.3f}, policy avg reward: {:.3f}, opportunistic avg reward: {:.3f}".format(policy_f1, opp_f1, policy_reward, opp_reward))
+    print(f"Best params over the seeds {best_params}")
