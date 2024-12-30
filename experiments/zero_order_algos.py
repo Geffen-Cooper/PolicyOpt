@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from itertools import product
 
 class ZeroOrderOptimizer(ABC):
+    """ Base class for Zero-Order Optimizers """
     def __init__(self, init_params, epsilon, batch_size, f, params_bounds=None):
         self.params = torch.tensor(init_params)
         self.params_bounds = torch.tensor(params_bounds) if params_bounds is not None else None
@@ -34,6 +35,7 @@ class ZeroOrderOptimizer(ABC):
         pass
 
 class SGD(ZeroOrderOptimizer):
+    """ Zero-Order Stochastic Gradient Descent (SGD) """
     def __init__(self, init_params, epsilon, batch_size, f, params_bounds=None):
         super().__init__(init_params, epsilon, batch_size, f, params_bounds)
 
@@ -83,6 +85,7 @@ class SGD(ZeroOrderOptimizer):
     
 
 class signSGD(SGD):
+    """ Zero-Order Signed Stochastic Gradient Descent (signSGD) """
     def __init__(self, init_params, epsilon, batch_size, f, params_bounds=None):
         super().__init__(init_params, epsilon, batch_size, f, params_bounds)
     
@@ -108,3 +111,53 @@ class signSGD(SGD):
         descent_direction = delta_permutations[max_index]
 
         return descent_direction, max_value
+
+class PatternSearch(ZeroOrderOptimizer):
+    """ Pattern Search Methods """
+    def __init__(self, init_params, epsilon, batch_size, f, params_bounds=None, theta=0.99, phi=1.01):
+        # epsilon = 1e-6 # TODO
+        super().__init__(init_params, epsilon, batch_size, f, params_bounds)
+        self.rho = lambda t : t**(3/2) # TODO: try different ones
+        self.theta = theta # contraction parameter
+        self.phi = phi # expansion parameter
+    
+    def estimate_gradient_and_descent_direction(self, f_args):
+        """ 
+            TODO: Direction set is all directions
+        """
+        num_params = len(self.params)
+        delta_permutations = torch.tensor(list(product([-1,0,1], repeat=num_params)), dtype=torch.float32)
+        delta_permutations = torch.nn.functional.normalize(delta_permutations, eps=1.0)
+        current_eval = self.f(self.params, **f_args)
+        evaluations = torch.zeros(delta_permutations.shape[0])
+        for _ in range(self.batch_size):
+            for k, delta in enumerate(delta_permutations):
+                if self._check_params_in_bounds(self.params + self.epsilon * delta):
+                    param = self.params + self.epsilon * delta
+                    evaluations[k] += self.f(param, **f_args) / self.batch_size      
+                else:
+                    evaluations[k] += 0
+        
+        descent_direction = torch.zeros(num_params, dtype=torch.float32)
+        for y in evaluations:
+            if (y < current_eval - self.rho(self.epsilon)).all():
+                descent_direction += self.epsilon * delta_permutations[k]
+                self.epsilon *= self.phi
+            else:
+                self.epsilon *= self.theta
+        
+        return descent_direction
+
+    def point_update(self, descent_direction):
+        if self._check_params_in_bounds(self.params + descent_direction):
+            return self.params + descent_direction
+        else:
+            print(f"Updated params out of bounds. Descent direction: {descent_direction}")
+            return self.params
+        
+    def forward(self, f_args):
+        descent_direction = self.estimate_gradient_and_descent_direction(f_args)
+        self.params = self.point_update(descent_direction)        
+        updated_eval = self.f(self.params, **f_args)
+            
+        return updated_eval

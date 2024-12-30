@@ -7,6 +7,9 @@ import torch.nn.functional as F
 from datasets.energy_harvest import EnergyHarvester
 from experiments.models import DiscreteQNetwork
 
+# TODO: for testing
+import matplotlib.pyplot as plt
+
 class DeviceState(Enum):
 	OFF = 0 # init or device energy went to 0
 	ON = 1 # otherwise
@@ -69,7 +72,7 @@ class Device(nn.Module):
 		self.dt = df['time'][1] - df['time'][0]
 		self.LEAKAGE_PER_SAMPLE = self.leakage*self.dt
 		# get energy as function of samples
-		t_out, p_out = self.eh.power(df)
+		t_out, p_out = self.eh.power_pd(df)
 		self.e_out = self.eh.energy(t_out, p_out)
 		valid, self.thresh = self.eh.generate_valid_mask(self.e_out, self.packet_size)
 		# Max energy of sensor
@@ -83,7 +86,6 @@ class Device(nn.Module):
 	
 	def _sample_segment(self, data, labels):
 		duration = torch.randint(low=self.DURATION_RANGE[0], high=self.DURATION_RANGE[1], size=(), generator=self.g, device=self.device)*self.FS
-		# rand_start = int(rng.random()*len(labels))
 		rand_start = torch.randint(high=len(labels), size=(), generator=self.g, device=self.device)
 		# make sure segment doesn't exceed end of data
 		if rand_start + duration >= len(labels):
@@ -367,8 +369,8 @@ class Device(nn.Module):
 			with torch.no_grad():
 				data = (data-self.mean.unsqueeze(0).unsqueeze(2))/(self.std.unsqueeze(0).unsqueeze(2) + 1e-5)
 				out = self.classifier(data) # removed torch.no_grad()
-			outputs.append( torch.softmax(out, dim=1))
-			preds.append(torch.argmax(torch.softmax(out, dim=1)).unsqueeze(0))
+			outputs.append(out)
+			preds.append(torch.argmax(out).unsqueeze(0))
 			# save target
 			target = torch.tensor([labels[t-self.packet_size+1]], dtype=torch.long, device=self.device)
 			targets.append(target) # last sample in packet
@@ -482,4 +484,77 @@ class Device(nn.Module):
 			rewards = torch.sum(rewards) / len(rewards)
 			# print(rewards)
 
+			return rewards
+
+	def predict_activity_transitions(self, e_trace, dt, sigma=100.0, threshold=2e-6):
+		"""
+			Parameters are the threshold, sigma, and min number of buffer samples 
+		"""
+		transition_times = []
+
+		# Perform Gaussian smoothing on the e_trace
+		radius = int(sigma * 3.0)
+		support = torch.arange(-radius, radius + 1, dtype=torch.float32)
+		kernel = torch.distributions.Normal(loc=0, scale=sigma).log_prob(support).exp_()
+		kernel *= 1 / kernel.sum()
+		smoothed_e_trace = 	F.conv1d(e_trace.reshape(1,1,-1), kernel.reshape(1,1,-1)).squeeze()
+
+		# plt.plot(e_trace.squeeze())
+		# plt.plot(smoothed_e_trace)
+		# plt.savefig("smoothed_e_trace.png")
+		# plt.clf()
+
+		e_dot = torch.diff(smoothed_e_trace) / dt
+		e_dot_buffer = torch.tensor([])
+
+		# plt.plot(e_dot)
+		# plt.savefig("e_dot.png")
+		# plt.clf()
+
+		for i in range(len(e_dot)):
+			if (e_dot_buffer.shape[0] > 10): # Min number of samples in the buffer
+				if e_dot_buffer.mean()-threshold < e_dot[i] < e_dot_buffer.mean()+threshold:
+					e_dot_buffer = torch.cat((e_dot_buffer, torch.tensor([e_dot[i]])))
+				else:
+					transition_times.append(i)
+					e_dot_buffer = torch.tensor([])
+			else:
+				e_dot_buffer = torch.cat((e_dot_buffer, torch.tensor([e_dot[i]])))
+			
+		return transition_times
+	
+	def forward_zeroth_unlabelled(self, params, data, training, gamma:float=0.5):
+		if training:
+			learned_packets, e_trace, actions = self.forward_sensor(data, params)
+			sent_times = learned_packets[0]
+			# If nothing is sampled, return None
+			if sent_times is None:
+				# Policy did not sample at all
+				print(f"Did not sample")
+				return 0.0
+			elif learned_packets[0].shape[0] != learned_packets[1].shape[0]:
+				print(f"Data error. arrive_times.shape[0] = {learned_packets[0].shape[0]} but packets.shape[0] = {learned_packets[1].shape[0]}")
+				return 0.0
+		
+			pred_activity_transitions = self.predict_activity_transitions(e_trace, self.dt)
+
+			# plt.plot(e_trace)
+			# plt.vlines(pred_activity_transitions, 0, 2e-4, colors='black', linestyles='dashed')
+			# plt.vlines(sent_times, 0, 2e-4, color='red', linestyles='dotted')
+			# plt.savefig("Test.png")
+			# plt.clf()
+
+			# print("Pred Num Transitions", len(pred_activity_transitions))
+
+			rewards = 0.0
+			for t0,tf in zip(pred_activity_transitions[:-1], pred_activity_transitions[1:]):
+				sent_times_per_activity = 0
+				for t in sent_times:
+					if t0 < t < tf:
+						sent_times_per_activity += 1
+				discounted_sum = torch.sum(gamma ** torch.arange(sent_times_per_activity))
+				# print("Sent times this interval", sent_times_per_activity)
+				# print("Discounted sum", discounted_sum)
+				rewards += discounted_sum
+			
 			return rewards

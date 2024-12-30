@@ -1,3 +1,4 @@
+import torch
 import pandas as pd
 import numpy as np
 import scipy.signal as signal
@@ -52,7 +53,7 @@ class EnergyHarvester():
         self.disp_max = disp_max
         self.efficiency = efficiency
 
-    def power(self, data : pd.DataFrame, 
+    def power_pd(self, data : pd.DataFrame, 
               use_x=True, use_y=True, use_z=True) -> (np.ndarray, np.ndarray):
         """
         calculates power per unit time, units in Watts
@@ -111,6 +112,67 @@ class EnergyHarvester():
 
         return time_out, damp_power
 
+    def power(self, data, 
+              use_x=True, use_y=True, use_z=True) -> (np.ndarray, np.ndarray):
+        """
+        TODO: change everything to using torch
+
+        calculates power per unit time, units in Watts
+        
+        data:
+            pandas dataframe with columns: time, x, y, z
+            x, y, z units should be in m/s^2
+            time units should be in seconds
+
+        use_x, use_y, use_z:
+            boolean values indicating whether or not to use the respective
+            axis in the energy harvest calculation
+
+        returns:
+            time_out: numpy array of time values in seconds
+            power_out: numpy array of power values in Watts
+        """
+
+        # validate input
+        # if not isinstance(data, pd.DataFrame):
+        #     raise TypeError("data must be a pandas dataframe")
+        time = data[0]
+        accx = data[1]
+        accy = data[2]
+        accz = data[3]
+        # if any([x is None for x in [time, accx, accy, accz]]):
+        #     raise ValueError("data must have columns: time, x, y, z")
+        
+        # preprocess
+        amag = torch.sqrt(((accx**2) if use_x else 0) + 
+                          ((accy**2) if use_y else 0) + 
+                          ((accz**2) if use_z else 0))
+        t_step = torch.mean(torch.diff(time))   # these should all be the same value
+        fs = 1/t_step
+        # generate filter (3rd order butterworth, 0.1Hz cutoff)
+        # cutoff is specified as a fraction of the nyquist frequency (fs/2)
+        iirb, iira = signal.butter(3, (2*0.1)/fs, 'highpass') # TODO: 
+        filter_amag = signal.filtfilt(iirb, iira, amag)
+
+        # calculate power
+        tf = signal.TransferFunction(
+                [1], 
+                [1, 
+                 self.spring_damp/self.proof_mass, 
+                 self.spring_const/self.proof_mass])
+        
+        # calculate position of proof mass
+        time_out, zpos, _ = signal.lsim(tf, filter_amag, time)
+        zpos = np.clip(zpos.flatten(), -self.disp_max, self.disp_max)
+
+        # calculate velocity of proof mass
+        zvel = np.gradient(zpos, time)
+
+        # calculate power: power = damping * velocity^2
+        damp_power = self.spring_damp * (zvel**2)
+
+        return time_out, damp_power
+
     def energy(self, time : np.ndarray, power : np.ndarray) -> np.ndarray:
         """
         calculates energy per unit time, units in Joules
@@ -125,6 +187,7 @@ class EnergyHarvester():
             energy: numpy array of energy values in Joules, same length as time and power
         """
         return scipy.integrate.cumulative_trapezoid(power, time, initial=0)*self.efficiency
+        # return torch.trapezoid(power, time) * self.efficiency
     
     def generate_valid_mask(self, energy : np.ndarray, accel_samples : int) -> np.ndarray:
         """
