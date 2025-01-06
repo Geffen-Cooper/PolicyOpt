@@ -13,10 +13,11 @@ parser.add_argument('--root_dir', type=str, default="~/Projects/data/dsads", hel
 parser.add_argument('--activity_list', nargs='+', type=int, help='List of integers')
 parser.add_argument('--body_part', type=str, default="right_leg", help='which body part to use')
 parser.add_argument('--LOOCV', action='store_true', help='save data per user for LOOCV')
+parser.add_argument('--T', type=int, default=7500, help="Length of generated data")
 parser.add_argument('--seed', type=int, default=0, help='random seed')
 
 args = parser.parse_args()
-
+T = args.T
 SEED = args.seed
 rng = np.random.default_rng(SEED)
 
@@ -50,6 +51,9 @@ overlap_frac = 0.5
 SEGMENT_LEN = 125 # samples per segment file, 5 seconds * 25 Hz 
 NUM_SEGMENTS = 60 # 5 minutes (300 seconds) / 5 second segments
 
+SEGMENT_LEN_MIN = SEGMENT_LEN * 0.75
+SEGMENT_LEN_MAX = SEGMENT_LEN
+
 sensors = ['acc','gyro','mag']
 sensor_dims = 3 # XYZ
 channels_per_sensor = len(sensors)*sensor_dims
@@ -70,7 +74,6 @@ for bp in active_body_parts:
             active_channels.append(sensor_channel_map[bp][sensor])
 active_channels = np.array(active_channels).flatten()
 
-# TODO: change to min data length...If not hit min yet, sample random activity sequence...
 num_samples_per_activity = SEGMENT_LEN*NUM_SEGMENTS
 
 # ============ determine the labeling scheme ============
@@ -233,6 +236,7 @@ if __name__ == '__main__':
         np.save(f"{folder}/testing_window_labels",test_window_labels)
 
     else:
+        num_activities = len(activity_folders)
         # we separate the data by participant
         training_data = {user: [] for user in range(NUM_USERS)} # raw data
         training_labels = {user: [] for user in range(NUM_USERS)} # raw labels
@@ -242,9 +246,6 @@ if __name__ == '__main__':
 
         # keep track of list indices as accumulate data from each file
         curr_train_window_idxs = {user: 0 for user in range(NUM_USERS)}
-
-        # randomoize the order of activities
-        random.shuffle(activity_folders)
 
         # merge data for each participant into a numpy array
         for user_i, user_folder in enumerate(participant_folders):
@@ -261,17 +262,15 @@ if __name__ == '__main__':
                 # data_array = np.zeros((num_samples_per_activity,len(active_channels)))
                 # label_array = np.zeros(num_samples_per_activity)
 
-                # Randomize activity lengths
-                """ TODO: right now each activity only happens once. Change this... """
                 data_array = []
                 label_array = []
                 start = 0
                 for segment_i, segment_file in enumerate(segment_files):
                     data_file_path = os.path.join(root_dir,activity_folder,user_folder,segment_file)
                     data_segment = pd.read_csv(data_file_path,header=None).values
-                    activity_len = rng.integers(low=0, high=SEGMENT_LEN)
+                    activity_len = SEGMENT_LEN
                     end = start + activity_len
-                    data_array.append(data_segment[0:activity_len,active_channels]) # TODO: randomize start idx
+                    data_array.append(data_segment[0:activity_len,active_channels])
                     label_array.append([active_activity_i] * activity_len)
                     start = end
                 
@@ -304,22 +303,44 @@ if __name__ == '__main__':
                 training_window_idxs[user_i].append(np.stack([start_idxs,end_idxs]).T)
                 training_window_labels[user_i].append(train_window_labels)
                 window_partitions[user_i].append(win_partitions)
+        
+        def generate_random_activity_sequence(raw_data, T):
+            raw_data = np.array(raw_data)
+            data = []
+            labels = []
+            time_idx = 0
+            num_activities = raw_data.shape[0]
+            data_len = raw_data.shape[1]
+            while time_idx < T:
+                random_start_idx = rng.integers(low=0, high=data_len-SEGMENT_LEN_MAX)
+                activity_idx = rng.integers(low=0, high=num_activities)
+                activity_len = 0
+                if time_idx > T - SEGMENT_LEN_MAX:
+                    activity_len = T - time_idx
+                else:
+                    activity_len = rng.integers(low=SEGMENT_LEN_MIN, high=SEGMENT_LEN_MAX)
+                
+                data.append(raw_data[activity_idx][random_start_idx : random_start_idx + activity_len])
+                labels.append([activity_idx] * activity_len)
 
+                time_idx += activity_len
+
+            return np.concatenate(data), np.concatenate(labels)
         
         # now concatenate and save data
         folder = f"{os.path.dirname(args.root_dir)}/LOOCV_preprocessed_data"
         os.makedirs(folder, exist_ok=True)
         for user_i in range(NUM_USERS):
-            training_data[user_i] = np.concatenate(training_data[user_i])
-            
-            training_labels[user_i] = np.concatenate(training_labels[user_i])
+            # training_data[user_i] = np.concatenate(training_data[user_i])
+            # training_labels[user_i] = np.concatenate(training_labels[user_i])
+            data, labels = generate_random_activity_sequence(training_data[user_i], T)
+            print("User", user_i, "Data shape", data.shape, "Labels shape", labels.shape)
             training_window_idxs[user_i] = np.concatenate(training_window_idxs[user_i])
             training_window_labels[user_i] = np.concatenate(training_window_labels[user_i])
             window_partitions[user_i] = np.concatenate(window_partitions[user_i])
-
             
-            np.save(f"{folder}/data_{user_i}",training_data[user_i])
-            np.save(f"{folder}/labels_{user_i}",training_labels[user_i])
+            np.save(f"{folder}/data_{user_i}", data)
+            np.save(f"{folder}/labels_{user_i}", labels)
             np.save(f"{folder}/window_idxs_{user_i}",training_window_idxs[user_i])
             np.save(f"{folder}/window_labels_{user_i}",training_window_labels[user_i])
             np.save(f"{folder}/window_partitions_{user_i}",window_partitions[user_i])

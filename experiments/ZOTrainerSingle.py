@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
@@ -10,20 +11,36 @@ from experiments.zero_order_algos import signSGD, SGD, PatternSearch
 
 torch.set_printoptions(sci_mode=True)
 
-class ZerothOrderDeviceTrainer(DeviceTrainer):
-    def __init__(self, exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, val_user, lr, seed):
-        super().__init__(exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, val_user, lr, seed)
+class ZOTrainerSingle(DeviceTrainer):
+    def __init__(self, exp_name, optimizer_cfg, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, val_user, seed, mode='labeled'):
+        self.mode = mode
+        super().__init__(exp_name, optimizer_cfg, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, val_user, seed)
+        self._preprocess_data()
     
-    def _build_optimizer(self, lr):
-        # init_params = [1e-5, 1e2]
-        init_params = [0, 0] # TODO
-        params_bounds = [[0.0, 1.5e-4], [0.0, 100.0]]
+    def _build_optimizer(self):
         # Initialize optimizer
-        f = partial(self.sensor.forward_zeroth, training=True)
-        # f = partial(self.sensor.forward_zeroth_unlabelled, training=True) # TODO: testing unlabelled
-        self.optimizer = PatternSearch(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=params_bounds)
-        # self.optimizer = signSGD(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=params_bounds)
-        # self.optimizer = SGD(init_params, lr, self.train_cfg['batch_size'], f, params_bounds=params_bounds)
+        if self.mode == 'labeled':
+            f = partial(self.sensor.forward_zeroth, training=True)
+        elif self.mode == 'unlabeled':
+            f = partial(self.sensor.forward_zeroth_unlabelled, training=True)
+        else:
+            raise NotImplementedError(f"Mode {self.mode} is invalid")
+        
+        Optimizer = self.optimizer_cfg['optimizer']
+        self.optimizer = Optimizer(self.optimizer_cfg['init_params'], self.optimizer_cfg['lr'], self.train_cfg['batch_size'], f, params_bounds=self.optimizer_cfg['params_bounds'])
+    
+    def _preprocess_data(self):
+        # TODO
+        if self.mode == 'unlabeled':
+            train_data = self.data['test']
+            val_data = self.data['test']
+            test_data = self.data['test']
+
+            self.data = {
+                'train': train_data,
+                'val': val_data,
+                'test': test_data
+            }
 
     def optimize_model(self, *f_args):
         return self.optimizer.forward(*f_args)
@@ -36,13 +53,22 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
         t_axis = t_axis.reshape(-1,1)
         # add the time axis to the data
         train_full_data_window = torch.cat((t_axis, segment_data), dim=1)
-        f_args = {
-            'data': train_full_data_window,
-            'labels': segment_labels # TODO: comment out when testing unlabelled
-        }
+
+        if self.mode == 'labeled':
+            f_args = {
+                'data': train_full_data_window,
+                'labels': segment_labels
+            } 
+        elif self.mode == 'unlabeled':
+            f_args = {
+                'data': train_full_data_window,
+            }
+        else:
+            raise NotImplementedError(f"Mode {self.mode} is invalid")
+        
         average_reward = self.optimize_model(f_args)
         
-        print("Iteration: {}, average reward: {:.3f}, params: {}, epsilon: {}".format(iteration, average_reward, self.optimizer.params, self.optimizer.epsilon))
+        print("Iteration {}: avg reward: {:.3f}, params: {}, epsilon: {}".format(iteration, average_reward, self.optimizer.params, self.optimizer.epsilon))
 
         writer.add_scalar("train_metric/average_reward", average_reward, iteration)
         writer.add_scalars("train_metric/params", 
@@ -53,18 +79,19 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
     def train(self):
         writer = SummaryWriter(self.log_dir)
         original_epsilon = self.optimizer.epsilon
-        best_val_reward = 0.0
         best_params = self.optimizer.params
 
         print(f"Original Epsilon: {original_epsilon}")
 
-        # test_loss = self.test(best_params, *self.data['test'])
+        test_loss = self.test(best_params, *self.data['test'])
+        best_val_reward = test_loss['policy_reward']
 
         for iteration in tqdm(range(self.train_cfg['epochs'])):
             self.train_one_epoch(iteration, writer, *self.data['train'])
             if iteration % self.train_cfg['val_every_epochs'] == 0:
                 val_loss = self.validate(iteration, writer, *self.data['val'], self.train_cfg['val_iters'])
                 if val_loss['avg_reward'] >= best_val_reward:
+                    print(f"Saving new best parameters {self.optimizer.params}")
                     best_params = self.optimizer.params
                     best_val_reward = val_loss['avg_reward']
             
@@ -75,10 +102,6 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
         
         test_loss = self.test(best_params, *self.data['test'])
 
-        # TODO: Try training with unlabelled test data to see if performance improves
-        # for iteration in tqdm(10):
-        #     self.train_one_epoch(0, None, *self.data['test'], unlabelled=True)
-        
         return best_params, test_loss
             
     def validate(self, iteration, writer, data, labels, val_iterations):
@@ -124,7 +147,7 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
         val_policy_f1 /= val_iterations
         val_opp_f1 /= val_iterations
 
-        print("Iteration: {}, params: {}, val_policy_f1_score: {:.3f}, val_opp_f1_score {:.3f}".format(iteration, self.optimizer.params, val_policy_f1, val_opp_f1))
+        print("Iteration {}: params: {}, val_policy_f1: {:.3f}, val_opp_f1: {:.3f}".format(iteration, self.optimizer.params, val_policy_f1, val_opp_f1))
 
         if writer is not None:
             writer.add_scalar("val_metric/f1_difference", val_policy_f1 - val_opp_f1, iteration)
@@ -185,7 +208,6 @@ class ZerothOrderDeviceTrainer(DeviceTrainer):
 
             outputs_opp, preds_opp, targets_opp = self.sensor.forward_classifier(labels,opp_packets)
 
-            print("Lenghts", len(preds_learned), len(preds_opp), len(labels))
             learned_reward += torch.where(preds_learned == targets_learned, 1, 0).sum() / len(preds_learned)
             opp_reward += torch.where(preds_opp == targets_opp, 1, 0).sum() / len(preds_opp)
 
@@ -243,7 +265,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     exp_name = f"{args.exp_name}_CV" if args.cross_validation else f"{args.exp_name}_SGD_Policy"
-    epochs = 5_000
     load_path = args.load_path
     data_path = "saved_data/dsads_data/LOOCV_preprocessed_data"
     seed = [0,1,2]
@@ -252,8 +273,16 @@ if __name__ == '__main__':
     # lr = [0.5e-4, 1e1]
     # lr = [0.5e-4, 1e1]
     # lr = [1e-5, 5]
-    lr = [1e-6, 10] # For PatternSearch
-    policy_mode = "conservative"
+    lr = [1e-6, 5] # For PatternSearch
+    params_bounds = [[0.0, 1.5e-4], [0.0, 10000.0]]
+
+    optimizer_cfg = {
+        'optimizer': PatternSearch, # PatternSearch, signSGD, SGD
+        'policy_mode': 'conservative',
+        'init_params': [1e-5, 1e2],
+        'lr': lr,
+        'params_bounds': params_bounds,
+    }
 
     sensor_cfg = {
         'packet_size': 8,
@@ -272,9 +301,9 @@ if __name__ == '__main__':
     sensor_cfg['sensor_net_cfg'] = sensor_net_cfg
 
     train_cfg = {
-        'batch_size': 1,
-        'epochs': 5_000,
-        'val_iters': 1,
+        'batch_size': 16,
+        'epochs': 5, # 5_000,
+        'val_iters': 10,
         'val_every_epochs': 1,	
     }
 
@@ -284,29 +313,57 @@ if __name__ == '__main__':
     }
 
     if args.cross_validation:
+        # TODO: generic helper code for LOOCV
         best_params = []
+        num_val_users = 8
         policy_f1 = 0.0
         opp_f1 = 0.0
         policy_reward = 0.0
         opp_reward = 0.0
+        
+        for s in seed:
+            for val_user in range(num_val_users):
+                trainer = ZOTrainerSingle(exp_name, optimizer_cfg, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, val_user, s)
+                params, test_loss = trainer.train()
+                best_params.append(params)
 
-        for val_user, s in enumerate(seed):
-            trainer = ZerothOrderDeviceTrainer(exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, val_user, lr, s)
-            params, test_loss = trainer.train()
-            best_params.append(params)
-
-            policy_f1 += test_loss['policy_f1'] / len(seed)
-            opp_f1 += test_loss['opp_f1'] / len(seed)
-            policy_reward += test_loss['policy_reward'] / len(seed)
-            opp_reward += test_loss['opp_reward'] / len(seed)
+                policy_f1 += test_loss['policy_f1']
+                opp_f1 += test_loss['opp_f1']
+                policy_reward += test_loss['policy_reward']
+                opp_reward += test_loss['opp_reward']
+        
+        policy_f1 /= len(seed) * num_val_users
+        opp_f1 /= len(seed) * num_val_users
+        policy_reward /= len(seed) * num_val_users
+        opp_reward /= len(seed) * num_val_users
         
         print(f"Cross Validation Results over {len(seed)} seeds")
         print("Policy F1: {:.3f}, opportunistic F1 {:.3f}, policy avg reward: {:.3f}, opportunistic avg reward: {:.3f}".format(policy_f1, opp_f1, policy_reward, opp_reward))
         print(f"Best params over the seeds {best_params}")
 
     else:
-        trainer = ZerothOrderDeviceTrainer(exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, 0, lr, seed[0])
+        trainer = ZOTrainerSingle(exp_name, optimizer_cfg, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, 0, seed[0], 'labeled')
         params, test_loss = trainer.train()
 
-        print("Policy F1: {:.3f}, opportunistic F1 {:.3f}, policy avg reward: {:.3f}, opportunistic avg reward: {:.3f}".format(test_loss['policy_f1'], test_loss['opp_f1'], test_loss['policy_reward'], test_loss['opp_reward']))
-        print(f"Best params over the seeds {params}")
+        unlabeled_optimizer_cfg = {
+            'optimizer': PatternSearch,
+            'policy_mode': 'conservative',
+            'init_params': params,
+            'lr': lr,
+            'params_bounds': params_bounds,
+        }
+        unlabeled_exp_name = exp_name + '_val_user_0'
+
+        unlabeled_trainer = ZOTrainerSingle(unlabeled_exp_name, unlabeled_optimizer_cfg, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, 0, seed[0], 'unlabeled')
+        unlabeled_params, unlabeled_test_loss = unlabeled_trainer.train()
+
+        new_file_path = os.path.join(unlabeled_trainer.root_dir, "TrialStats.txt")
+
+        with open(new_file_path, "x") as f:
+            f.write("Opp F1 {:.3f}, Merged F1 {:.3f}, User F1 {:.3f}".format(test_loss['opp_f1'], test_loss['policy_f1'], unlabeled_test_loss['policy_f1']))
+            f.write('\n')
+            f.write(f"Init Params {optimizer_cfg['init_params']}, Params Merged {params}, Params User {unlabeled_params}")
+        
+        print("Opp F1 {:.3f}, Merged F1 {:.3f}, User F1 {:.3f}".format(test_loss['opp_f1'], test_loss['policy_f1'], unlabeled_test_loss['policy_f1']))
+
+        print(f"Init Params {optimizer_cfg['init_params']}, Params Merged {params}, Params User {unlabeled_params}")

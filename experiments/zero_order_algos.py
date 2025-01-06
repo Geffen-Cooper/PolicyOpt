@@ -137,14 +137,22 @@ class PatternSearch(ZeroOrderOptimizer):
                     evaluations[k] += self.f(param, **f_args) / self.batch_size      
                 else:
                     evaluations[k] += 0
-        
-        descent_direction = torch.zeros(num_params, dtype=torch.float32)
+                
+        improved = False
+        descent_directions = []
         for y in evaluations:
-            if (y < current_eval - self.rho(self.epsilon)).all():
-                descent_direction += self.epsilon * delta_permutations[k]
-                self.epsilon *= self.phi
-            else:
-                self.epsilon *= self.theta
+            if (y > current_eval - self.rho(self.epsilon)).all(): # if maximize
+                descent_directions.append(self.epsilon * delta_permutations[k])
+                improved = True
+        self.epsilon *= self.phi if improved else self.theta
+
+        # Choose a random descent direction
+        if improved and len(descent_directions) > 1:
+            descent_direction = descent_directions[torch.randint(high=len(descent_directions), size=())]
+        elif len(descent_directions) == 1:
+            descent_direction = descent_directions[0]
+        else:
+            descent_direction = torch.zeros(num_params)
         
         return descent_direction
 

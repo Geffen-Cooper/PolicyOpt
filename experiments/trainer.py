@@ -10,8 +10,8 @@ from datasets.apply_policy_nathan import Device
 from experiments.dataloader import load_user_data
 
 class DeviceTrainer():
-	def __init__(self, exp_name, policy_mode, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, val_user, lr, seed):
-		self.policy_mode = policy_mode
+	def __init__(self, exp_name, optimizer_cfg, sensor_cfg, train_cfg, classifier_cfg, device, load_path, data_path, val_user, seed):
+		self.optimizer_cfg = optimizer_cfg
 
 		self.load_path = load_path
 		self.seed = seed
@@ -23,7 +23,7 @@ class DeviceTrainer():
 		self._load_data(data_path, val_user)
 		self._load_classifier(**classifier_cfg)
 		self._load_sensor(**sensor_cfg)
-		self._build_optimizer(lr)
+		self._build_optimizer()
 
 		self.fig, self.axs = plt.subplots(1,1, figsize=(20,5))
 
@@ -54,8 +54,8 @@ class DeviceTrainer():
 		self.mean = torch.mean(train_data, dim=0)
 		self.std = torch.std(train_data, dim=0)
 	
-	def _build_optimizer(self, lr):
-		self.opt = torch.optim.Adam(self.sensor.parameters(),lr=lr)
+	def _build_optimizer(self):
+		self.opt = torch.optim.Adam(self.sensor.parameters(),lr=self.optimizer_cfg['lr'])
 
 	def _load_classifier(self, path, num_activities):
 		self.classifier = SimpleNet(3,num_activities).to(self.device)
@@ -69,7 +69,7 @@ class DeviceTrainer():
 			leakage=leakage,
 			init_overhead=init_overhead,
 			eh=self.eh,
-			policy_mode=self.policy_mode,
+			policy_mode=self.optimizer_cfg['policy_mode'],
 			classifier=self.classifier,
 			device=self.device, 
 			duration_range=duration_range,

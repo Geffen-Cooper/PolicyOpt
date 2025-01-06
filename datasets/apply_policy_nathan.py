@@ -364,9 +364,9 @@ class Device(nn.Module):
 		preds = []
 		targets = []
 		for t, data in zip(*packets):
-			data = data.T.unsqueeze(0)
 			# make prediction
 			with torch.no_grad():
+				data = data.T.unsqueeze(0)
 				data = (data-self.mean.unsqueeze(0).unsqueeze(2))/(self.std.unsqueeze(0).unsqueeze(2) + 1e-5)
 				out = self.classifier(data) # removed torch.no_grad()
 			outputs.append(out)
@@ -390,19 +390,19 @@ class Device(nn.Module):
 				outputs_policy.append(outputs[i].repeat(count, 1))
 				preds_policy = torch.cat((preds_policy, preds[i].repeat(count)))
 			else:
-				# If last packet, extend preds_policy to be length (len(labels) - self.packet_size)
-				count = int(len(labels) - self.packet_size - (packets[0][i]+1))
+				# If last packet, extend preds_policy to be length (len(labels))
+				count = int(len(labels) - packets[0][i])
 				if count > 0:
 					outputs_policy.append(outputs[i].repeat(count, 1))
 					preds_policy = torch.cat((preds_policy, preds[i].repeat(count)))
 
-		targets_policy = labels[first_sample_idx : (len(labels) - self.packet_size - 1)]
+		targets_policy = labels[first_sample_idx : ]
 
 		# If did not sample at all, make targets_policy = all labels and outputs_policy to be all zeros so policy incurs high loss
 		if len(packets[0]) == 0:
 			targets_policy = labels
 			outputs_policy = torch.zeros((targets_policy.shape), dtype=torch.float32, device=self.device)
-		
+				
 		return outputs_policy, preds_policy, targets_policy
 	
 	def forward_rl(self, data, labels, training):
@@ -556,5 +556,7 @@ class Device(nn.Module):
 				# print("Sent times this interval", sent_times_per_activity)
 				# print("Discounted sum", discounted_sum)
 				rewards += discounted_sum
+			
+			rewards /= len(pred_activity_transitions) # normalize by number of predicted activity transitions
 			
 			return rewards
